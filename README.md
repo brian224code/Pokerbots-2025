@@ -61,5 +61,5 @@ Make sure the private repository is accessible only to authorized users to prote
  - C++17 for cpp_skeleton
  - boost for cpp_skeleton (`sudo apt install libboost-all-dev`)
 
-## Linting
+# Linting
 Use pylint.

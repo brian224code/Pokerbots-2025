@@ -1,4 +1,4 @@
-## Pulling changes from class engine repo
+# Pulling changes from class engine repo
 
 To clone a public Git repository into your private repository while maintaining the ability to pull updates (e.g., bug fixes) from the public repository, you can use the following steps:
 
@@ -40,11 +40,11 @@ git push private main
 You can automate this process using a script if frequent syncing is required. Here's an example:
 
 #!/bin/bash
-# Pull updates from the public repository
+## Pull updates from the public repository
 git fetch origin
 git merge origin/main
 
-# Push updates to the private repository
+## Push updates to the private repository
 git push private main
 Save the script, make it executable (chmod +x script.sh), and run it periodically.
 
@@ -53,7 +53,7 @@ If there are conflicts during the merge process, you will need to resolve them m
 Make sure the private repository is accessible only to authorized users to protect its contents.
 
 
-## Dependencies
+# Dependencies
  - python>=3.5
  - cython (pip install cython)
  - eval7 (pip install eval7)

@@ -1,5 +1,6 @@
 import eval7
 import csv
+import os
 import itertools
 from math import comb
 import pandas as pd
@@ -20,9 +21,9 @@ def monte_carlo(visible_cards, iters):
 
     visible_cards = [eval7.Card(card) for card in visible_cards]
     my_hole = visible_cards[:2]
-    community_cards = visible_cards[3:]
+    current_community_cards = visible_cards[3:]
 
-    num_community_cards_to_draw = 5 - len(community_cards)
+    num_community_cards_to_draw = 5 - len(current_community_cards)
 
     for card in visible_cards:
         deck.cards.remove(card)
@@ -34,7 +35,7 @@ def monte_carlo(visible_cards, iters):
 
         hidden_cards = deck.peek(2 + num_community_cards_to_draw)
         opp_hole = hidden_cards[:2]
-        community_cards += hidden_cards[3:]
+        community_cards = current_community_cards + hidden_cards[3:]
 
         my_score = eval7.evaluate(my_hole + community_cards)
         opp_score = eval7.evaluate(opp_hole + community_cards)
@@ -57,6 +58,9 @@ def make_csv(num_community_cards, iters):
     Returns:
         nothing (saves lookup table as a csv)
     """
+    if num_community_cards not in [0, 3, 4, 5]:
+        raise Exception('Valid num_community_cards are 0 for preflop, 3 for flop, 4 for turn, 5 for river.')
+    
     deck = eval7.Deck()
     holes = itertools.combinations(deck, 2 + num_community_cards)
     total_hands = comb(52, 2 + num_community_cards)
@@ -77,7 +81,7 @@ def make_csv(num_community_cards, iters):
 
         winrates.append(row)
 
-    with open('winrates_for_street_size_' + str(num_community_cards), 'w') as csvfile:
+    with open('./winrates_for_street_size_' + str(num_community_cards) + '.csv', 'w') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=[field for field in winrates[0].keys()])
         writer.writeheader()
         writer.writerows(winrates)
@@ -102,4 +106,4 @@ def load_csv(filename):
     return lookup_table
 
 if __name__ == "__main__":
-    make_csv(0, 1000)
+    make_csv(0, 100000)

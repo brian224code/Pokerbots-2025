@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Read in log file and prompt user for player identity
-log_file_path = "game_log_analyze.txt"
+log_file_path = "gamelog.txt"
 
 # Read in text file
 with open(log_file_path, "r") as file:
@@ -32,12 +32,3 @@ plt.xlabel('Time')
 plt.ylabel('Cumulative Sum')
 plt.grid(True)
 plt.show()
-
-log_content = "".join(log_content)
-rounds = log_content.split('Round #')
-rounds = rounds[1:]
-
-for i, val in enumerate(stack_tracker):
-    if val <= -100:
-        print(rounds[i])
-

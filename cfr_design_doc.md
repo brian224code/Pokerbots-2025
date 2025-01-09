@@ -4,33 +4,75 @@
 ![Pseudocode](image.png)
 
 # Hand Buckets
+Use n=10 hierarchical buckets:
 
-Use hierarchical buckets
-- using either eval 7 or win prob, or some other metric of hand strength 
-- first bool is for if hit bounty or not, and rest are divided on hand strength
+Preflop = ([0,1], [1,n]) 
+    where x[0] = bounty bool, x[1] = hand strength based on monte carlo winrates using a lookup table
 
-preflop = ([0, 1], [1,10])
+Flop = ([0,1], [1,n], [1,n+2]) 
+    where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = handstrength based on eval7 score (n+1, n+2 = low-strength, high-potential)
 
-flop = ([0, 1], [1, 10], [1, 10])
+Turn = ([0,1], [1,n], [1,n+2], [1,n+2])
+    where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = bucket from flop, x[3] = handstrength based on eval7 score (n+1, n+2 = low-strength, high-potential)
 
-turn = ([0, 1], [1, 10], [1, 10], [1, 10])
+River = ([0,1], [1,n], [1,n+2], [1,n+2], [1,n]) 
+    where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = bucket from flop, x[3] = bucket from turn, x[4] = handstrength based on eval7 score 
 
-river = ([0, 1], [1, 10], [1, 10], [1, 10])
+Bucket handstrength ranges:
+
+Preflop = []
+
+Flop = []
+
+Turn = []
+
+River = []
+
+Potential Function:
+
+n+1 = straight/flush draw, highcard
+n+2 = straight/flush draw, pair
 
 # Action Buckets
-
 - Call
 - Fold
 - Check
-- Raise (min raise, max raise/all in, 1/3 pot, 1/2 pot, full pot, 1.5 pot, 2 pot)
+- Raise (min raise, 1/3 pot, 1/2 pot, full pot, 1.5 pot, 2 pot, max raise/all in)
 
 # Implementation Details
-
+- create a custom poker engine to train bot using cfr
 - persist weights as csv and read them into a matrix at runtime
+- use potential function and bucketer function during runtime to determine which information set we are at and sample from strategy weights accordingly
 
 # Other Ideas
 - base bot weights that are loaded in each game and have the bot do "fine tunes" within each game (1000 rounds) or even for each bot
 
 # TODO
-- what language
-- how to calc hand strength 
+- is there a c++ version of eval7 (pokerstove?)? (Brian and Grace)
+- what language (C++ for faster training?) (Brian and Grace)
+
+- condense hole winrates to have 169 entries (Brian)
+- make potential function (Brian)
+- make bucketer function (Grace)
+
+- make custom poker engine for training (Brian and Grace)
+    - write basic poker game (similar parameters to engine) (Brian and Grace)
+    - add variant (Brian)
+    - spec cfr related areas (Grace)
+    - utility function
+    - legal actions
+    - determining if node is chance, p1, p2, or terminal
+    - sampling chance node outcome
+    - structure of information set
+    - structure of history
+    - P(h)
+    - reach probabilities for 1 and p2 
+- code cfr algo (Brian)
+    - framework
+    - cumulative regret and strategy and current strategy tables
+    - regret function 
+
+- determine handstrength ranges (data analysis) (food for thought: we will never "downgrade" buckets) (Brian and Grace)
+- run and save averaged strategy into a csv (Brian)
+- spec data structures and create load function for persisted weights (runtime) (Grace)
+- runtime algo (potentially add ingame learning/finetuning) (Brian and Grace)

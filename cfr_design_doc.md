@@ -10,8 +10,11 @@ Use hierarchical buckets
 - first bool is for if hit bounty or not, and rest are divided on hand strength
 
 preflop = ([0, 1], [1,10])
+
 flop = ([0, 1], [1, 10], [1, 10])
+
 turn = ([0, 1], [1, 10], [1, 10], [1, 10])
+
 river = ([0, 1], [1, 10], [1, 10], [1, 10])
 
 # Action Buckets

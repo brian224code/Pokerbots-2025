@@ -120,6 +120,9 @@ class Player(Bot):
         street = round_state.street  # 0, 3, 4, or 5 representing pre-flop, flop, turn, or river respectively
         my_cards = round_state.hands[active]  # your cards
         board_cards = round_state.deck[:street]  # the board cards
+        street = round_state.street  # 0, 3, 4, or 5 representing pre-flop, flop, turn, or river respectively
+        my_cards = round_state.hands[active]  # your cards
+        board_cards = round_state.deck[:street]  # the board cards
         my_pip = round_state.pips[active]  # the number of chips you have contributed to the pot this round of betting
         opp_pip = round_state.pips[1-active]  # the number of chips your opponent has contributed to the pot this round of betting
         my_stack = round_state.stacks[active]  # the number of chips you have remaining

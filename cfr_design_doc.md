@@ -53,21 +53,22 @@ n+2 = straight/flush draw, pair
 
 - condense hole winrates to have 169 entries (Brian)
 - make potential function (Brian)
-- make bucketer function (Grace)
+- make bucketer function (Brian)
 
 - make custom poker engine for training (Brian and Grace)
-    - write basic poker game (similar parameters to engine) (Brian and Grace)
-    - add variant (Brian)
+    - write basic poker game (similar parameters to engine) (Grace)
+    - add variant (Grace)
     - spec cfr related areas (Grace)
     - utility function
     - legal actions
     - determining if node is chance, p1, p2, or terminal
     - sampling chance node outcome
     - structure of information set
-    - structure of history
     - P(h)
-    - reach probabilities for 1 and p2 
+    
 - code cfr algo (Brian)
+    - structure of history
+    - reach probabilities for 1 and p2 
     - framework
     - cumulative regret and strategy and current strategy tables
     - regret function 

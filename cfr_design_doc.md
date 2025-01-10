@@ -51,7 +51,7 @@ n+2 = straight/flush draw, pair
 - is there a c++ version of eval7 (pokerstove?)? (Brian and Grace)
 - what language (C++ for faster training?) (Brian and Grace)
 
-- condense hole winrates to have 169 entries (Brian)
+- ~condense hole winrates to have 169 entries (Brian)~
 - make potential function (Brian)
 - make bucketer function (Brian)
 

@@ -105,5 +105,48 @@ def load_csv(filename):
 
     return lookup_table
 
+def condense_hole_lookup(filename):
+    df = pd.read_csv(filename)
+
+    condensed_holes = {}
+
+    for _, row in df.iterrows():
+        hole_1 = row['hole 1']
+        hole_2 = row['hole 2']
+
+        rank_1 = hole_1[0]
+        rank_2 = hole_2[0]
+        suited = hole_1[1] == hole_2[1]
+
+        distinct_hole_key = (rank_1, rank_2, suited)
+        winrate = row['winrate']
+
+        if distinct_hole_key in condensed_holes:
+            condensed_holes[distinct_hole_key].append(winrate)
+        else:
+            condensed_holes[distinct_hole_key] = [winrate]
+
+    processed_winrates = [
+        {'rank 1': hole[0], 'rank 2': hole[1], 'suited': 1 if hole[2] else 0, 'winrate': sum(winrate)/len(winrate)} 
+        for hole, winrate in condensed_holes.items()
+    ]
+        
+    with open('./hole_winrates.csv', 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=[field for field in processed_winrates[0].keys()])
+        writer.writeheader()
+        writer.writerows(processed_winrates)
+
+def load_condensed_hole_lookup(filename):
+    df = pd.read_csv(filename)
+
+    lookup_table = {
+        str(row['rank 1']) + str(row['rank 2']) + str(row['suited']) : row['winrate']
+        for _, row in df.iterrows()
+    }
+
+    return lookup_table
+
 if __name__ == "__main__":
-    make_csv(0, 100000)
+    # make_csv(0, 100000)
+    # condense_hole_lookup('python_skeleton/winrates_for_street_size_0.csv')
+    print(len(load_condensed_hole_lookup('hole_winrates.csv')))

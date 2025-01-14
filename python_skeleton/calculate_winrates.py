@@ -136,7 +136,7 @@ def condense_hole_lookup(filename):
         writer.writeheader()
         writer.writerows(processed_winrates)
 
-def load_condensed_hole_lookup(filename):
+def load_hole_winrates(filename):
     df = pd.read_csv(filename)
 
     lookup_table = {
@@ -149,4 +149,4 @@ def load_condensed_hole_lookup(filename):
 if __name__ == "__main__":
     # make_csv(0, 100000)
     # condense_hole_lookup('python_skeleton/winrates_for_street_size_0.csv')
-    print(len(load_condensed_hole_lookup('hole_winrates.csv')))
+    print(len(load_hole_winrates('hole_winrates.csv')))

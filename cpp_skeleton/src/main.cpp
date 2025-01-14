@@ -3,10 +3,139 @@
 #include <skeleton/runner.h>
 #include <skeleton/states.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <map>
+#include <string>
 #include <array>
 #include <time.h>
 
 using namespace pokerbots::skeleton;
+
+const char RANKS[13] = {'2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'};
+const char SUITS[4] = {'h', 's', 'c', 'd'};
+const int NUMBUCKETS = 10;
+const float PREFLOPRANGES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+const float FLOPRANGES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+const float TURNRANGES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+const float RIVERRANGES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+struct Bucket {
+  bool bounty = false;
+  int preflop = 0;
+  int flop = 0;
+  int turn = 0;
+  int river = 0;
+};
+const std::map<std::string, float> HOLEWINRATES;
+
+
+
+
+/*
+  Takes in poker hand as a std::string, e.g. '4c2sAc7h6d'
+
+  Returns 0 if hand is not low strength / high potential.
+  Returns 1 if hand is highcard + straight/flush draw
+  Returns 2 if hand is pair + straight/flush draw
+*/
+int isHighPotential(std::string hand) {
+  
+  Evaluator evaluator = Evaluator();
+
+  std::string currentHand = evaluator.eval(hand);
+
+  if (currentHand == 'high' || currentHand == 'pair') {
+    for (int i = 0; i < 4; i++) {
+      if (evaluator.handType(hand + '2' + SUITS[i]) == 'flush') {
+        return currentHand == 'pair'? 2 : 1;
+      }
+    }
+    for (int i = 0; i < 13; i++) {
+      if (evaluator.handType(hand + SUITS[i] + 'h') == 'straight') {
+        return currentHand == 'pair'? 2 : 1;
+      }
+    }
+  }
+
+  return 0;
+}
+
+/*
+  Takes in poker hand as a std::string, e.g. '4c2sAc7h6d'
+  and bounty as a char, e.g. '4' or 'K'
+
+  Returns a Bucket struct
+*/
+int getBucket(std::string hand, char bounty) {
+  
+  int numCards = hand.length() / 2;
+  if (!(numCards > 4 && numCards < 8) && numCards != 2) {
+    throw std::invalid_argument('Hand must have 2,5,6,7 cards.');
+  }
+
+  Evaluator evaluator = Evaluator();
+
+  Bucket bucket;
+
+  if (hand.find(bounty) != std::string::npos) {
+   bucket.bounty = 1; 
+  }
+  if (numCards >= 2) {
+    std::string currentHand = hand.substr(0, 4);
+    
+  }
+  if (numCards >= 5) {
+    std::string currentHand = hand.substr(0, 10);
+    int potential = isHighPotential(currentHand);
+    if (potential) {
+      bucket.flop = NUMBUCKETS + potential
+    } else {
+      int score = evaluator.eval(currentHand);
+      for (int i = 0; i < NUMBUCKETS; i++) {
+        if (score <= FLOPRANGES[i]) {
+          bucket.flop = i + 1;
+          break;
+        }
+      }
+      if (!bucket.flop) {
+        bucket.flop = 10;
+      }
+    }
+  }
+  if (numCards >= 6) {
+    std::string currentHand = hand.substr(0, 12);
+    int potential = isHighPotential(currentHand);
+    if (potential) {
+      bucket.turn = NUMBUCKETS + potential
+    } else {
+      int score = evaluator.eval(currentHand);
+      for (int i = 0; i < NUMBUCKETS; i++) {
+        if (score <= TURNRANGES[i]) {
+          bucket.turn = i + 1;
+          break;
+        }
+      }
+      if (!bucket.turn) {
+        bucket.turn = 10;
+      }
+    }
+  }
+  if (numCards == 7) {
+    std::string currentHand = hand.substr(0, 14);
+    int score = evaluator.eval(currentHand);
+    for (int i = 0; i < NUMBUCKETS; i++) {
+      if (score <= RIVERRANGES[i]) {
+        bucket.river = i + 1;
+        break;
+      }
+    }
+    if (!bucket.river) {
+      bucket.river = 10;
+    }
+  }
+  
+  return bucket;
+}
 
 struct Bot {
   /*

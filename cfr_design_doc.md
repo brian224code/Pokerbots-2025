@@ -48,12 +48,9 @@ n+2 = straight/flush draw, pair
 - base bot weights that are loaded in each game and have the bot do "fine tunes" within each game (1000 rounds) or even for each bot
 
 # TODO
-- is there a c++ version of eval7 (pokerstove?)? (Brian and Grace)
-- what language (C++ for faster training?) (Brian and Grace)
-
 - ~condense hole winrates to have 169 entries (Brian)~
-- make potential function (Brian)
-- make bucketer function (Brian)
+- ~make potential function (Brian)~
+- ~make bucketer function (Brian)~
 
 - make custom poker engine for training (Brian and Grace)
     - write basic poker game (similar parameters to engine) (Grace)

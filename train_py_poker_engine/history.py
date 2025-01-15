@@ -33,7 +33,8 @@ class History():
         self.round_state = round_state
         # RoundState: ['button', 'street', 'pips', 'stacks', 'hands', 'bounties', 'deck', 'previous_state']
 
-    def generate_initial_node(start_player):
+    @classmethod
+    def generate_initial_node(cls, start_player):
         '''
         Return History representative of beginning of round
         '''

@@ -29,4 +29,5 @@ class InformationSet():
         Constructor
         '''
         self.active = 0 # 0 or 1
-        # player, handStrength (bucket), button, street, stacks, bounty
+        # player, handStrength (bucket), button, street, stacks, bounty, pot
+        # may or may not need all of these but prob doesnt hurt to have them?

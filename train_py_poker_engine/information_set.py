@@ -14,20 +14,28 @@ import math
 import eval7
 
 class InformationSet():
-    '''
-    Representation of InformationSet in poker game for CFR training.
+   '''
+   Representation of InformationSet in poker game for CFR training.
+   TODO: update structure depending on bucketer function and what we decide to do for sigma_t
 
-    TODO: update structure depending on bucketer function and what we decide to do for sigma_t
+   @param player Either 0 or 1 to denote Player 0's info or Player 1's info
+   @param active Either 0 or 1 to indicate the active player
+   @param...
+   '''
 
-    @param player Either 0 or 1 to denote Player 0's info or Player 1's info
-    @param active Either 0 or 1 to indicate the active player
-    @param...
-    '''
+   def __init__(self, bucket, button, street, pips, stacks, bounty):
+      '''
+      Constructor
+      '''
+      self.active = 0 # 0 or 1
+      self.handStrengthBucket = bucket
+      self.button = button
+      self.street = street
+      self.pips = pips
+      self.stacks = stacks
+      self.bounty = bounty
 
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        self.active = 0 # 0 or 1
-        # player, handStrength (bucket), button, street, stacks, bounty, pot
-        # may or may not need all of these but prob doesnt hurt to have them?
+   def hash(self):
+      return hash(frozenset(self.active, self.handStrengthBucket, self.button, self.street, self.pips, self.stacks, self.bounty))
+    
+   

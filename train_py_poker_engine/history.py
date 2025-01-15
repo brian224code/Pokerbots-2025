@@ -6,6 +6,8 @@ from python_skeleton.skeleton.states import GameState, TerminalState, RoundState
 from python_skeleton.skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
 from python_skeleton.skeleton.bot import Bot
 from python_skeleton.skeleton.runner import parse_args, run_bot
+from information_set import InformationSet
+from python_skeleton.buckets import get_bucket
 
 from python_skeleton.calculate_winrates import *
 
@@ -29,7 +31,7 @@ class History():
         self.round_state = round_state
         # RoundState: ['button', 'street', 'pips', 'stacks', 'hands', 'bounties', 'deck', 'previous_state']
 
-    def generateInitialNode():
+    def generate_initial_node():
         '''
         Return History representative of beginning of round
         '''
@@ -54,13 +56,13 @@ class History():
         return History(0, round_state) # active = 0 because Player 0 always goes first
     
     
-    def getActivePlayer(self):
+    def get_active_player(self):
         '''
         Return ID of active player (either 0 or 1)
         '''
         return self.active
 
-    def getNodeType(self):
+    def get_node_type(self):
         '''
         Returns char denoting current round state:
           'T': terminal
@@ -74,20 +76,20 @@ class History():
         else:
             return 'D'
     
-    def getPayout(self, playerId):
+    def get_payout(self, player_id):
         '''
         Returns utility of respective player if state is terminal node
 
-        @param playerId Either 0 or 1
+        @param player_id Either 0 or 1
         '''
         assert type(self.round_state) == TerminalState
 
-        my_delta = self.round_state.deltas[playerId]  # input player's bankroll change from this round
+        my_delta = self.round_state.deltas[player_id]  # input player's bankroll change from this round
 
         return my_delta
 
 
-    def generateChanceOutcome(self):
+    def generate_chance_outcome(self):
         '''
         Returns new History representative of sampling an outcome if state is chance node
 
@@ -112,7 +114,7 @@ class History():
             self.round_state.deck.append(str(full_deck.cards.pop()))
 
 
-    def getLegalActions(self):
+    def get_legal_actions(self):
         '''
         Returns 1x10 array representing 10 action buckets for active player, where indexed value is:
             True if action is legal
@@ -164,11 +166,11 @@ class History():
 
         return [pot // 3, pot // 2, pot, (pot * 3) // 2, pot * 2]
     
-    def generateActionOutcome(self, action_index):
+    def generate_action_outcome(self, action_index):
         '''
         Returns new History representative of player doing action on current history
 
-        @param playerId
+        @param player_id
         @param action Action of input player as follows:
             0 - Fold
             1 - Call
@@ -181,17 +183,21 @@ class History():
             8 - Raise (1.5 pot)
             9 - Raise (2 pot)
         '''
-        # check that it is playerId's turn
 
         min_raise, max_raise = self.round_state.raise_bounds()
-        actions = [FoldAction(), CallAction(), CheckAction(), min_raise, max_raise] + self.calculate_pot_fractions()
+        actions = [FoldAction, CallAction, CheckAction, min_raise, max_raise] + self.calculate_pot_fractions()
 
+        # TODO: should maybe check if input action is legal
         if action_index < 3:
-            return History(1-self.active, self.round_state.proceed(actions[action_index]))
+            return History(1-self.active, self.round_state.proceed(actions[action_index]()))
         else:
             return History(1-self.active, self.round_state.proceed(RaiseAction(actions[action_index])))
 
-    def getPlayerInfo(self, playerId):
+    def get_player_info(self, player_id):
         '''
         Returns information set for input player to use in CFR algorithm
         '''
+        rs = self.round_state
+        bucket = get_bucket(rs.hands[player_id] + rs.deck)
+
+        return InformationSet(bucket, rs.button, rs.street, tuple(rs.pips), tuple(rs.stacks), rs.bounties[player_id])

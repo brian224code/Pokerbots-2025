@@ -71,6 +71,7 @@ n+2 = straight/flush draw, pair
     - regret function 
 
 - determine handstrength ranges (data analysis) (food for thought: we will never "downgrade" buckets) (Brian and Grace)
+- store regrets into csv and print to analyze training
 - run and save averaged strategy into a csv (Brian)
 - spec data structures and create load function for persisted weights (runtime) (Grace)
 - runtime algo (potentially add ingame learning/finetuning) (Brian and Grace)

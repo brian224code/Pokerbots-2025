@@ -20,10 +20,10 @@ class History():
     Representation of history in poker game for CFR training.
     Based on RoundState (states.py) used in Pokerbots python skeleton.
 
-    Player 0 always goes first, followed by Player 1.
-
     @param active Either 0 or 1 to indicate the active player
-    @param...
+    @param roundState Representation of round state used by states.py and runner.py
+        TODO: make sure that grabbing "illegal information" works
+        TODO: can maybe use engine.py? figure out engine.py vs states.py
     '''
 
     def __init__(self, active, round_state):
@@ -31,7 +31,7 @@ class History():
         self.round_state = round_state
         # RoundState: ['button', 'street', 'pips', 'stacks', 'hands', 'bounties', 'deck', 'previous_state']
 
-    def generate_initial_node():
+    def generate_initial_node(start_player):
         '''
         Return History representative of beginning of round
         '''
@@ -53,8 +53,7 @@ class History():
         stacks = [STARTING_STACK - SMALL_BLIND, STARTING_STACK - BIG_BLIND]
         round_state = RoundState(0, 0, pips, stacks, hands, bounties, deck, None)
 
-        return History(0, round_state) # active = 0 because Player 0 always goes first
-    
+        return History(start_player, round_state)
     
     def get_active_player(self):
         '''
@@ -84,8 +83,9 @@ class History():
         '''
         assert isinstance(self.round_state, TerminalState)
 
-        # terminal state is result of showdown, not fold, we need to calculate delta
+        # terminal state is result of showdown, not fold, we need to calculate delta and bounty hits
         if self.round_state.bounty_hits == None:
+            # get deltas
             previous_state = self.round_state.previous_state
             hand0 = [eval7.Card(s) for s in previous_state.hands[0] + previous_state.deck]
             hand1 = [eval7.Card(s) for s in previous_state.hands[1] + previous_state.deck]
@@ -93,9 +93,12 @@ class History():
             delta = previous_state.stacks[0] - STARTING_STACK if winner == 1 else STARTING_STACK - previous_state.stacks[1]
             self.round_state.deltas = [delta, -delta]
 
+            # get bounty hits
+            self.round_state.bounty_hits = previous_state.get_bounty_hits()
+
         player_delta = self.round_state.deltas[player_id]
 
-        if self.bounty_hits[0] and self.round_state.deltas[0] > 0 or self.bounty_hits[1] and self.round_state.deltas[1] > 0:
+        if self.round_state.bounty_hits[0] and self.round_state.deltas[0] > 0 or self.round_state.bounty_hits[1] and self.round_state.deltas[1] > 0:
             return player_delta * 1.5 + 10
         else:
             return player_delta
@@ -210,4 +213,4 @@ class History():
         rs = self.round_state
         bucket = get_bucket(rs.hands[player_id] + rs.deck)
 
-        return InformationSet(bucket, rs.button, rs.street, tuple(rs.pips), tuple(rs.stacks), rs.bounties[player_id])
+        return InformationSet(bucket, rs.button, rs.street, rs.pips, rs.stacks, rs.bounties[player_id])

@@ -23,19 +23,15 @@ class InformationSet():
    @param...
    '''
 
-   def __init__(self, bucket, button, street, pips, stacks, bounty):
+   def __init__(self, bucket, pips, stacks):
       '''
       Constructor
       '''
-      self.active = 0 # 0 or 1
       self.handStrengthBucket = bucket
-      self.button = button
-      self.street = street
       self.pips = pips
       self.stacks = stacks
-      self.bounty = bounty
 
    def hash(self):
-      return hash(frozenset(self.active, self.handStrengthBucket, self.button, self.street, self.pips, self.stacks, self.bounty))
+      return hash(frozenset(self.handStrengthBucket, self.pips, self.stacks))
     
    

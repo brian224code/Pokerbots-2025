@@ -40,3 +40,4 @@ if __name__ == '__main__':
     trainer.solve(100,000)
     strategy = trainer.get_equilibrium_strategy()
     # TODO Save strategy as csv
+    # TODO store regrets as csv

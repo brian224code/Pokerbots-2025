@@ -15,6 +15,8 @@ import random
 import math
 import eval7
 
+NUM_ACTIONS = 10
+
 class History():
     '''
     Representation of history in poker game for CFR training.

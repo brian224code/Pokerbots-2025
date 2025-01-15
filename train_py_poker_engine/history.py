@@ -89,7 +89,7 @@ class History():
             previous_state = self.round_state.previous_state
             hand0 = [eval7.Card(s) for s in previous_state.hands[0] + previous_state.deck]
             hand1 = [eval7.Card(s) for s in previous_state.hands[1] + previous_state.deck]
-            winner = eval7.evaluate(hand0) < eval7.evaluate(hand1)
+            winner = eval7.evaluate(hand0) < eval7.evaluate(hand1) # TODO what if there's a draw
             delta = previous_state.stacks[0] - STARTING_STACK if winner == 1 else STARTING_STACK - previous_state.stacks[1]
             self.round_state.deltas = [delta, -delta]
 
@@ -109,7 +109,7 @@ class History():
 
         Should only be called if street < 5
         '''
-        dealt_cards = self.hands[0] + self.hands[1] + self.deck
+        dealt_cards = self.round_state.hands[0] + self.round_state.hands[1] + self.round_state.deck
 
         # get deck of remaining cards
         full_deck = eval7.Deck()
@@ -120,12 +120,17 @@ class History():
         assert(self.round_state.street < 5)
 
         # update community cards (deck)
+        new_deck = list(self.round_state.deck)
         if self.round_state.street == 0:
             for _ in range(3):
-                self.round_state.deck.append(str(full_deck.cards.pop()))
+                new_deck.append(str(full_deck.cards.pop()))
         else:
-            self.round_state.deck.append(str(full_deck.cards.pop()))
+            new_deck.append(str(full_deck.cards.pop()))
 
+        new_pips = list(self.round_state.pips)
+        new_stacks = list(self.round_state.stacks)
+        state = RoundState(1, self.round_state.street, new_pips, new_stacks, self.round_state.hands, self.round_state.bounties, new_deck, self.round_state)
+        return History(1, state) # active = button % 2
 
     def get_legal_actions(self):
         '''

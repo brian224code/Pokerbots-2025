@@ -40,9 +40,9 @@ class History():
         full_deck.shuffle()
 
         # Deal two hands with 2 cards each
+        hand0 = [str(full_deck.cards.pop()), str(full_deck.cards.pop())]
         hand1 = [str(full_deck.cards.pop()), str(full_deck.cards.pop())]
-        hand2 = [str(full_deck.cards.pop()), str(full_deck.cards.pop())]
-        hands = [hand1, hand2]
+        hands = [hand0, hand1]
 
         # pick bounties at random
         bounty_chars = [str(i) for i in range(2, 10)] + ['T', 'J', 'Q', 'K', 'A']
@@ -69,25 +69,36 @@ class History():
           'C': chance
           'D': decision
         '''
-        if type(self.round_state) == TerminalState:
+        if isinstance(self.round_state, TerminalState):
             return 'T'
-        elif (self.street == 0 and self.button > 0) or self.button > 1:  # both players acted
-            return 'C' # TODO: might be more logic that would be chance; see runner.py
+        elif self.round_state.street != len(self.round_state.deck): # proceed_street was just called
+            return 'C'
         else:
             return 'D'
     
-    def get_payout(self, player_id):
+    def get_utility(self, player_id):
         '''
         Returns utility of respective player if state is terminal node
 
         @param player_id Either 0 or 1
         '''
-        assert type(self.round_state) == TerminalState
+        assert isinstance(self.round_state, TerminalState)
 
-        my_delta = self.round_state.deltas[player_id]  # input player's bankroll change from this round
+        # terminal state is result of showdown, not fold, we need to calculate delta
+        if self.round_state.bounty_hits == None:
+            previous_state = self.round_state.previous_state
+            hand0 = [eval7.Card(s) for s in previous_state.hands[0] + previous_state.deck]
+            hand1 = [eval7.Card(s) for s in previous_state.hands[1] + previous_state.deck]
+            winner = eval7.evaluate(hand0) < eval7.evaluate(hand1)
+            delta = previous_state.stacks[0] - STARTING_STACK if winner == 1 else STARTING_STACK - previous_state.stacks[1]
+            self.round_state.deltas = [delta, -delta]
 
-        return my_delta
+        player_delta = self.round_state.deltas[player_id]
 
+        if self.bounty_hits[0] and self.round_state.deltas[0] > 0 or self.bounty_hits[1] and self.round_state.deltas[1] > 0:
+            return player_delta * 1.5 + 10
+        else:
+            return player_delta
 
     def generate_chance_outcome(self):
         '''
@@ -100,7 +111,6 @@ class History():
         # get deck of remaining cards
         full_deck = eval7.Deck()
         full_deck.shuffle()
-
         for card in dealt_cards:
             full_deck.cards.remove(eval7.Card(card))
 
@@ -155,7 +165,7 @@ class History():
     
     def calculate_pot_fractions(self):
         '''
-        Return tuple with following fractions of pot [1/3, 1/2, 1, 1.5, 2]
+        Return list of numbers corresponding to these fractions of pot: [1/3, 1/2, 1, 1.5, 2]
         All decimal raises are floored
         '''
         my_stack = self.round_state.stacks[self.active]  # the number of chips you have remaining
@@ -187,7 +197,7 @@ class History():
         min_raise, max_raise = self.round_state.raise_bounds()
         actions = [FoldAction, CallAction, CheckAction, min_raise, max_raise] + self.calculate_pot_fractions()
 
-        # TODO: should maybe check if input action is legal
+        # TODO: should maybe check if input action is legal when debugging
         if action_index < 3:
             return History(1-self.active, self.round_state.proceed(actions[action_index]()))
         else:

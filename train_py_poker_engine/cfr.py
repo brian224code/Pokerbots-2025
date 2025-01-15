@@ -11,23 +11,13 @@ class CFR_Trainer:
         self.current_profile = {}
         self.regrets = [] # used for checking if we converged
 
-    def update_cumulative_regret(self, information_set, action, actual_utility, expected_utility, opp_reach_prob):
-        hashable_info_set = str(information_set)
-
-        if hashable_info_set not in self.cumulative_regret:
-            self.cumulative_regret[hashable_info_set] = [0] * NUM_ACTIONS
-
+    def update_cumulative_regret(self, hashable_info_set, action, actual_utility, expected_utility, opp_reach_prob):
         regret = opp_reach_prob * (actual_utility - expected_utility)
         self.cumulative_regret[hashable_info_set][action] += regret
         self.regrets.append(regret)
 
-    def update_cumulative_strategy(self, information_set, action, my_reach_prob, action_prob):
-        hashable_info_set = str(information_set)
-
-        if hashable_info_set not in self.cumulative_strategy:
-            self.cumulative_strategy[hashable_info_set] = [0] * NUM_ACTIONS
-            
-        self.cumulative_strategy[hashable_info_set][action] += my_reach_prob * action_prob
+    def update_cumulative_strategy(self, hashable_info_set, action, my_reach_prob, action_weight):           
+        self.cumulative_strategy[hashable_info_set][action] += my_reach_prob * action_weight
 
     def generate_uniform_strategy(self, history):
         legal_actions = history.get_legal_actions()
@@ -37,12 +27,7 @@ class CFR_Trainer:
             for legal in legal_actions
         ]
 
-    def update_current_profile(self, information_set, history):
-        hashable_info_set = str(information_set)
-
-        if hashable_info_set not in self.cumulative_regret:
-            self.cumulative_regret[hashable_info_set] = [0] * NUM_ACTIONS
-
+    def update_current_profile(self, hashable_info_set, history):
         positive_regrets = [max(regret, 0) for regret in self.cumulative_regret[hashable_info_set]]
         
         if sum(positive_regrets) > 0:
@@ -53,14 +38,57 @@ class CFR_Trainer:
         else:
             self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
 
-    def CFR(history, player, t, pi_1, pi_2):
-        # TODO Implement exactly like Algorithm 1 from design doc
-        pass
+    def CFR(self, history, player, t, reach_probs):
+        # TODO docstrings (reach_probs is a tuple of pi_0, pi_1)
+        if history.get_node_type() == 'T':
+            return history.get_utility(player)
+        elif history.get_node_type() == 'C':
+            new_history = history.generate_chance_outcome()
+            return self.CFR(new_history, player, t, reach_probs)
+        
+        information_set = history.get_player_info(player)
+        hashable_info_set = str(information_set)
+        if hashable_info_set not in self.current_profile:
+            self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
+        if hashable_info_set not in self.cumulative_regret:
+            self.cumulative_regret[hashable_info_set] = [0] * NUM_ACTIONS
+        if hashable_info_set not in self.cumulative_strategy:
+            self.cumulative_strategy[hashable_info_set] = [0] * NUM_ACTIONS
 
+        expected_utility = 0
+        actual_utilities = [0] * NUM_ACTIONS
+        legal_actions = history.get_legal_actions() # TODO Does it matter what player it is
+        for action, legal in enumerate(legal_actions):
+            if not legal:
+                continue
+
+            new_history = history.generate_action_outcome(action)
+            action_weight = self.current_profile[hashable_info_set][action]
+            
+            if history.get_active_player() == 0:
+                actual_utilities[action] = self.CFR(new_history, player, t, (action_weight*reach_probs[0], reach_probs[1]))
+            else:
+                actual_utilities[action] = self.CFR(new_history, player, t, (reach_probs[0], action_weight*reach_probs[1]))
+
+            expected_utility += action_weight*actual_utilities[action]
+
+        if history.get_active_player() == player:
+            for action, legal in enumerate(legal_actions):
+                if not legal:
+                    continue
+
+                action_weight = self.current_profile[hashable_info_set][action]
+
+                self.update_cumulative_regret(hashable_info_set, action, actual_utilities[action], expected_utility, reach_probs[1-player])
+                self.update_cumulative_strategy(hashable_info_set, action, reach_probs[player], action_weight)
+            self.update_current_profile(hashable_info_set, history)
+        
+        return expected_utility
+                
     def solve(self, iters):
         # TODO add tqdm
         for t in range(iters):
-            for player in [1, 2]:
+            for player in [0, 1]:
                 self.CFR('empty history', player, t, 1, 1) # TODO Initialize history
 
     def get_equilibrium_strategy(self):

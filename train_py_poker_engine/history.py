@@ -131,7 +131,7 @@ class History():
 
     def get_legal_actions(self):
         '''
-        Returns 1x10 array representing 10 action buckets for active player, where indexed value is:
+        Returns 1xNUM_ACTIONS array representing NUM_ACTIONS action buckets for active player, where indexed value is:
             True if action is legal
             False if action is not legal
 
@@ -147,7 +147,7 @@ class History():
             8 - Raise (1.5 pot)
             9 - Raise (2 pot)
         '''
-        output = [False for _ in range(10)]
+        output = [False for _ in range(NUM_ACTIONS)]
 
         legal_actions = self.round_state.legal_actions()
         min_raise, max_raise = self.round_state.raise_bounds()
@@ -215,4 +215,4 @@ class History():
         rs = self.round_state
         bucket = get_bucket(rs.hands[player_id] + rs.deck)
 
-        return InformationSet(bucket, rs.button, rs.street, rs.pips, rs.stacks, rs.bounties[player_id])
+        return InformationSet(bucket, rs.pips, rs.stacks)

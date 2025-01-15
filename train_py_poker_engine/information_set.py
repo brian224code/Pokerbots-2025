@@ -1,3 +1,5 @@
+from python_skeleton.buckets import Bucket
+
 '''
 Information set for CFR algorithm
 '''
@@ -36,7 +38,8 @@ class InformationSet():
    #       index += flag * 10**i
    #    return index
    
-   def bucket_pipstacks(pipstacks):
+   @classmethod
+   def bucket_pipstacks(cls, pipstacks):
       '''
       Buckets pips and stacks into buckets of 40 (i.e. 0-39, 40-79, ...)
       '''
@@ -44,7 +47,17 @@ class InformationSet():
    
    def __str__(self):
       flags = [self.handBucket.bounty, self.handBucket.preflop, self.handBucket.flop, self.handBucket.turn, self.handBucket.river, self.pips[0], self.pips[1], self.stacks[0], self.stacks[1]]
-      result = ''
-      for flag in flags:
-         result += flag + '|'
-      return result
+      return '|'.join([str(flag) for flag in flags])
+   
+   @classmethod
+   def from_string(cls, string):
+        flags = string.split('|')
+        bucket = Bucket()
+        bucket.bounty = int(flags[0])
+        bucket.preflop = int(flags[1])
+        bucket.flop = int(flags[2])
+        bucket.turn = int(flags[3])
+        bucket.river = int(flags[4])
+        pips = (int(flags[5]), int(flags[6]))
+        stacks = (int(flags[7]), int(flags[8]))
+        return cls(bucket, pips, stacks)

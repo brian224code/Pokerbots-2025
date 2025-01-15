@@ -17,7 +17,7 @@ where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = handstrength based 
 Turn = ([0,1], [1,n], [1,n+2], [1,n+2])
 where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = bucket from flop, x[3] = handstrength based on eval7 score (n+1, n+2 = low-strength, high-potential)
 
-River = ([0,1], [1,n], [1,n+2], [1,n+2], [1,n])
+River = ([0,1], [1,n], [0,n+2], [0,n+2], [0,n])
 where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = bucket from flop, x[3] = bucket from turn, x[4] = handstrength based on eval7 score
 
 Bucket handstrength ranges:
@@ -47,6 +47,7 @@ n+2 = straight/flush draw, pair
 - create a custom poker engine to train bot using cfr
 - persist weights as csv and read them into a matrix at runtime
 - use potential function and bucketer function during runtime to determine which information set we are at and sample from strategy weights accordingly
+- if for some reason infoset not in strats, do a random action?
 
 # Other Ideas
 

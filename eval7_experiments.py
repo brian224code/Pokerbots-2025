@@ -27,9 +27,21 @@ def plot_winrate_histogram(filename):
     plt.title('Winrate Histogram')
     plt.show()
 
+def divide_winrates(filename, divisions):
+    df = pd.read_csv(filename)
+    
+    data = [row['winrate'] for _, row in df.iterrows()]
+    data.sort()
 
+    size_of_bucket = len(data) // divisions
+    threshholds = []
+    for i in range(0, len(data), size_of_bucket):
+        threshholds.append(data[i])
+
+    return threshholds
 
 
 if __name__ == '__main__':
-    # test_eval7_scores()
-    plot_winrate_histogram('./python_skeleton/winrates_for_street_size_0.csv')
+    test_eval7_scores()
+    # print(divide_winrates('./all_hole_winrates.csv', 10))
+    # plot_winrate_histogram('./all_hole_winrates.csv')

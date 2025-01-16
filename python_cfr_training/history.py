@@ -43,7 +43,8 @@ class History():
         self.round_state = round_state
         # RoundState: ['button', 'street', 'pips', 'stacks', 'hands', 'bounties', 'deck', 'previous_state']
 
-    def generate_initial_node(start_player):
+    @classmethod
+    def generate_initial_node(cls, start_player):
         '''
         Return History representative of beginning of round
         '''
@@ -65,6 +66,7 @@ class History():
         stacks = [STARTING_STACK - pips[0], STARTING_STACK - pips[1]]
         round_state = RoundState(0, 0, pips, stacks, hands, bounties, deck, None)
 
+        # TODO start player should be small blind
         return History(start_player, round_state)
 
     def get_active_player(self):
@@ -187,7 +189,7 @@ class History():
 
     def get_legal_actions(self):
         '''
-        Returns 1x10 array representing 10 action buckets for active player, where indexed value is:
+        Returns 1xNUM_ACTIONS array representing NUM_ACTIONS action buckets for active player, where indexed value is:
             True if action is legal
             False if action is not legal
 
@@ -203,7 +205,7 @@ class History():
             8 - Raise (1.5 pot)
             9 - Raise (2 pot)
         '''
-        output = [False for _ in range(10)]
+        output = [False for _ in range(NUM_ACTIONS)]
 
         legal_actions = self.round_state.legal_actions()
         min_raise, max_raise = self.round_state.raise_bounds()
@@ -276,7 +278,7 @@ class History():
         rs = self.round_state
         bucket = get_bucket(rs.hands[player_id] + rs.deck)
 
-        return InformationSet(bucket, rs.button, rs.street, rs.pips, rs.stacks, rs.bounties[player_id])
+        return InformationSet(bucket, rs.pips, rs.stacks)
 
     def __str__(self):
         if isinstance(self.round_state, TerminalState):

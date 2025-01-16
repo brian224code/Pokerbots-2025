@@ -1,6 +1,3 @@
-'''
-Simple example pokerbot, written in Python.
-'''
 from python_skeleton.skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction
 from python_skeleton.skeleton.states import GameState, TerminalState, RoundState
 from python_skeleton.skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
@@ -56,6 +53,7 @@ class History():
         stacks = [STARTING_STACK - SMALL_BLIND, STARTING_STACK - BIG_BLIND]
         round_state = RoundState(0, 0, pips, stacks, hands, bounties, deck, None)
 
+        # TODO start player should be small blind
         return History(start_player, round_state)
     
     def get_active_player(self):

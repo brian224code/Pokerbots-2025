@@ -140,7 +140,7 @@ def load_hole_winrates(filename):
     df = pd.read_csv(filename)
 
     lookup_table = {
-        str(row['rank 1']) + str(row['rank 2']) + str(row['suited']) : row['winrate']
+        str(row['rank 1']) + str(row['rank 2']) + str(row['suited']) : float(row['winrate'])
         for _, row in df.iterrows()
     }
 

@@ -18,8 +18,8 @@ class InformationSet():
       Constructor
       '''
       self.handBucket = bucket
-      self.pips = tuple([round(pip/40) * 40 for pip in pips])
-      self.stacks = tuple([round(stack/40) * 40 for stack in stacks])
+      self.pips = InformationSet.bucket_pipstacks(pips)
+      self.stacks = InformationSet.bucket_pipstacks(stacks)
 
    # def get_index(self):
    #    '''

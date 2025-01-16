@@ -1,16 +1,31 @@
 from information_set import InformationSet
 from history import History, NUM_ACTIONS
 import csv
+import pandas as pd
 import tqdm
 
 class CFR_Trainer:
-    def __init__(self):
+    def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename=''):
         """
+        Initializes trainer for CFR algo. Can either continue training on existing weights or train from scratch
         Dict tables are key = hashed info set, value = list of 10 numbers indexed by action
+
+        Args:
+            cumulative_regret_filename: csv file containing existing cumulative regret table, or empty to train from scratch
+            cumulative_strategy_filename: csv file containing existing cumulative strategy table, or empty to train from scratch
+            current_profile_filename: csv file containing existing current profile table, or empty to train from scratch
         """
-        self.cumulative_regret = {} 
-        self.cumulative_strategy = {} 
-        self.current_profile = {}
+        if cumulative_regret_filename and cumulative_strategy_filename and current_profile_filename:
+            self.cumulative_regret = CFR_Trainer.load_from_csv(cumulative_regret_filename)
+            self.cumulative_strategy = CFR_Trainer.load_from_csv(cumulative_strategy_filename)
+            self.current_profile = CFR_Trainer.load_from_csv(current_profile_filename)
+        elif cumulative_strategy_filename or cumulative_strategy_filename or current_profile_filename:
+            raise Exception('Need all 3 files to continue training on existing weights.')
+        else:
+            self.cumulative_regret = {}
+            self.cumulative_strategy = {} 
+            self.current_profile = {}
+
         self.regrets = [] # used for checking if we converged
 
     def update_cumulative_regret(self, hashable_info_set, action, actual_utility, expected_utility, opp_reach_prob):
@@ -112,7 +127,7 @@ class CFR_Trainer:
         # Calculate utilities
         expected_utility = 0
         actual_utilities = [0] * NUM_ACTIONS
-        legal_actions = history.get_legal_actions() # TODO Does it matter what player it is
+        legal_actions = history.get_legal_actions()
         for action, legal in enumerate(legal_actions):
             if not legal:
                 continue
@@ -158,30 +173,48 @@ class CFR_Trainer:
             average strategy in the form of a dict with key = info set as string 
             and value = list of weights for each of the 10 actions
         """
-        # TODO need to make sure 1/|A(I)| is also factored in??? Is this right???
         return {
             information_set: [weight / sum(strategy) for weight in strategy]
             for information_set, strategy in self.cumulative_strategy.items()
         }
+    
+    @classmethod
+    def load_from_csv(cls, filename):
+        df = pd.read_csv(filename)
 
+        table = {
+            str(row['information set']) : [float(row[f'action {i}']) for i in range(10)]
+            for _, row in df.iterrows()
+        }
+
+        return table
+
+    @classmethod
+    def save_to_csv(cls, filename, data):
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+            header = ['information set'] + [f'action {i}' for i in range(10)]
+            writer.writerow(header)
+            for info_set, values in data.items():
+                writer.writerow([info_set] + values)
+        print(f'Saved data to {filename}.')
 
 if __name__ == '__main__':
     trainer = CFR_Trainer()
-    trainer.solve(100,000)
+    trainer.solve(100000)
     strategy = trainer.get_equilibrium_strategy()
 
-    print('Saving strategy and regrets...')
+    print('Saving strategies and regrets...')
 
-    # Save strategy as csv
-    with open('strategy.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        header = ['information set'] + [f'action {i}' for i in range(10)]
-        writer.writerow(header)
-        for info_set, weights in strategy.items():
-            writer.writerow([info_set] + weights)
-    print('Saved equilibrium strategy to strategy.csv')
+    # Save equilibrium strategy
+    CFR_Trainer.save_to_csv('strategy.csv', strategy)
 
-    # Save regrets as csv
+    # Save tables for future training
+    CFR_Trainer.save_to_csv('cumulative_strategy.csv', trainer.cumulative_strategy)
+    CFR_Trainer.save_to_csv('cumulative_regret.csv', trainer.cumulative_regret)
+    CFR_Trainer.save_to_csv('current_profile.csv', trainer.current_profile)
+
+    # Save regrets to see if it converged
     with open('regrets.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(trainer.regrets)

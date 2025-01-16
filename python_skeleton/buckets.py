@@ -53,12 +53,10 @@ def get_bucket(hand, bounty, hole_winrates):
     if len(hand) not in [2,5,6,7]:
         raise Exception('Hand must have 2,5,6,7 cards.')
 
-    NUM_BUCKETS = 10
-    PREFLOP_RANGES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    EVAL7_SCORE_RANGE = [0, 135004160]
-    FLOP_RANGES = [(EVAL7_SCORE_RANGE[1] / 10.0) * (i+1) for i in range(10)]
-    TURN_RANGES = [(EVAL7_SCORE_RANGE[1] / 10.0) * (i+1) for i in range(10)]
-    RIVER_RANGES = [(EVAL7_SCORE_RANGE[1] / 10.0) * (i+1) for i in range(10)]
+    PREFLOP_RANGES = [0.5, 0.55, 0.6, 0.63333, 0.66666, 0.7, 0.76, 0.82, 0.87, 1.0]
+    FLOP_RANGES = [484674, 834199, 17287824, 17611408, 34040832, 34388480, 50842368, 51165696, 101494784, 135004160]
+    TURN_RANGES = [834199, 17611408, 34040832, 34388480, 50842368, 51165696, 67895296, 84720279, 101494784, 135004160]
+    RIVER_RANGES = [17611408, 34040832, 34388480, 51165696, 67567616, 67895296, 84440659, 84720279, 101494784, 135004160]
 
     bucket = Bucket()
 
@@ -86,7 +84,7 @@ def get_bucket(hand, bounty, hole_winrates):
         current_hand = [eval7.Card(card) for card in hand[:5]]
         potential = is_high_potential(current_hand)
         if potential:
-            bucket.flop = NUM_BUCKETS + potential
+            bucket.flop = len(FLOP_RANGES) + potential
         else:
             score = eval7.evaluate(current_hand)
             for i, threshhold in enumerate(FLOP_RANGES):
@@ -98,7 +96,7 @@ def get_bucket(hand, bounty, hole_winrates):
         current_hand.append(eval7.Card(hand[5]))
         potential = is_high_potential(current_hand)
         if potential:
-            bucket.turn = NUM_BUCKETS + potential
+            bucket.turn = len(TURN_RANGES) + potential
         else:
             score = eval7.evaluate(current_hand)
             for i, threshhold in TURN_RANGES:

@@ -18,7 +18,7 @@ from python_skeleton.skeleton.bot import Bot
 from python_skeleton.skeleton.runner import parse_args, run_bot
 from python_skeleton.buckets import get_bucket
 
-from train_py_poker_engine.information_set import InformationSet
+from information_set import InformationSet
 
 import random
 import math

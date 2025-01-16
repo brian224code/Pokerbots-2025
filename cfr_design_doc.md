@@ -21,6 +21,7 @@ River = ([0,1], [1,n], [0,n+2], [0,n+2], [0,n])
 where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = bucket from flop, x[3] = bucket from turn, x[4] = handstrength based on eval7 score
 
 # Bucket handstrength ranges:
+![Bucket Ranges](ranges.png)
 
 Potential Function:
 

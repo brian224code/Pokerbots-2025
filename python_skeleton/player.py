@@ -33,7 +33,7 @@ class Player(Bot):
         Returns:
         Nothing.
         '''
-        self.hole_winrates = load_csv("hole_winrates.csv") # returns a dictionary with frozensets as keys
+        self.hole_winrates = load_hole_winrates("hole_winrates.csv") # returns a dictionary with frozensets as keys
         self.strategy = CFR_Trainer.load_from_csv('strategy.csv')
         self.post_turn_win_probability = 0
         self.won = False
@@ -146,26 +146,32 @@ class Player(Bot):
                 return FoldAction()
             return CheckAction()
 
+        # determine current state
         card_bucket = get_bucket(my_cards + board_cards, my_bounty, self.hole_winrates)
         info_set = InformationSet(card_bucket, my_stack, opp_stack)
         hashable_info_set = str(info_set)
-        found_strategy = False
+
+        strategy = [0] * (NUM_ACTIONS)
         if hashable_info_set in self.strategy:
+            # current state was learned during training
             strategy = self.strategy[hashable_info_set]
-            found_strategy = True
+            
+            # TODO: can remove this once we have new strategy csv; currently gets rid of last 3 elements, which are nan
+            if len(strategy) != NUM_ACTIONS:
+                strategy = strategy[:NUM_ACTIONS]
         else:
-            strategy = [0] * NUM_ACTIONS
+            # current state was not learned during training
             for i in range(10):
                 for j in range(10):
-                    neighboring_hashable_info_set = hashable_info_set[:-3] + i + '|' + j
+                    neighboring_hashable_info_set = hashable_info_set[:-3] + str(i) + '|' + str(j)
                     if neighboring_hashable_info_set in self.strategy:
-                        found_strategy = True
                         for k in range(NUM_ACTIONS):
                             neighboring_strategy = self.strategy[neighboring_hashable_info_set]
                             strategy[k] += neighboring_strategy[k]
             strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
 
-        if found_strategy:
+        # return action based on strategy if strategy exists
+        if sum(strategy) != 0:
             actions = [FoldAction, CallAction, CheckAction, max_raise] + RAISES
             index = random.choices(range(NUM_ACTIONS), weights=strategy, k=1)[0]
             if index < 3:
@@ -185,8 +191,15 @@ class Player(Bot):
             print("Preflop")
 
             # Lookup strength of hole cards from pre-calculated dictionary
-            self.hole_strength = self.hole_winrates[frozenset(my_cards)]
+            rank_1 = my_cards[0][0]
+            rank_2 = my_cards[1][0]
+            suited = '1' if my_cards[0][1] == my_cards[1][1] else '0'
 
+            if rank_1 + rank_2 + suited in self.hole_winrates:
+                self.hole_strength = self.hole_winrates[rank_1 + rank_2 + suited]
+            else:
+                self.hole_strength = self.hole_winrates[rank_2 + rank_1 + suited]
+            
             print("Initial strength of hand: ", self.hole_strength)
             if my_cards[0][0] == my_cards[1][0]:
                 hole_pair = True

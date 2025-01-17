@@ -18,6 +18,7 @@ class CFR_Trainer:
             current_profile_filename: csv file containing existing current profile table, or empty to train from scratch
         """
         if cumulative_regret_filename and cumulative_strategy_filename and current_profile_filename:
+            print('Loading existing weights...')
             self.cumulative_regret = CFR_Trainer.load_from_csv(cumulative_regret_filename)
             self.cumulative_strategy = CFR_Trainer.load_from_csv(cumulative_strategy_filename)
             self.current_profile = CFR_Trainer.load_from_csv(current_profile_filename)
@@ -198,7 +199,7 @@ class CFR_Trainer:
         df = pd.read_csv(filename)
 
         table = {
-            str(row['information set']) : [float(row[f'action {i}']) for i in range(10)]
+            str(row['information set']) : [float(row[f'action {i}']) for i in range(NUM_ACTIONS)]
             for _, row in df.iterrows()
         }
 
@@ -208,22 +209,23 @@ class CFR_Trainer:
     def save_to_csv(cls, filename, data):
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
-            header = ['information set'] + [f'action {i}' for i in range(10)]
+            header = ['information set'] + [f'action {i}' for i in range(NUM_ACTIONS)]
             writer.writerow(header)
             for info_set, values in data.items():
                 writer.writerow([info_set] + values)
         print(f'Saved data to {filename}.')
 
 if __name__ == '__main__':
-    trainer = CFR_Trainer()
-    trainer.solve(50)
+    trainer = CFR_Trainer('./CFR_TRAIN_DATA/1.16/cumulative_regret.csv','./CFR_TRAIN_DATA/1.16/cumulative_strategy.csv','./CFR_TRAIN_DATA/1.16/current_profile.csv')
+    trainer.solve(1)
     strategy = trainer.get_equilibrium_strategy()
     
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):
         os.mkdir(data_folder)
-    save_directory = f'{data_folder}/{datetime.now()}'
-    os.mkdir(save_directory)
+    # save_directory = f'{data_folder}/{datetime.now()}'
+    # os.mkdir(save_directory)
+    save_directory = data_folder
 
     # Save equilibrium strategy
     CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)

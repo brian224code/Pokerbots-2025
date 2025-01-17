@@ -208,19 +208,6 @@ class History():
 
         return output
     
-    # def calculate_pot_fractions(self):
-    #     '''
-    #     Return list of numbers corresponding to these fractions of pot: [1/3, 1/2, 1, 1.5, 2]
-    #     All decimal raises are floored
-    #     '''
-    #     my_stack = self.round_state.stacks[self.active]  # the number of chips you have remaining
-    #     opp_stack = self.round_state.stacks[1-self.active]  # the number of chips your opponent has remaining
-    #     my_contribution = STARTING_STACK - my_stack  # the number of chips you have contributed to the pot
-    #     opp_contribution = STARTING_STACK - opp_stack  # the number of chips your opponent has contributed to the pot
-    #     pot = my_contribution + opp_contribution
-
-    #     return [int(pot * fraction) for fraction in POT_RAISE_FRACTIONS]
-    
     def generate_action_outcome(self, action_index):
         '''
         Returns new History representative of player doing action on current history
@@ -255,9 +242,9 @@ class History():
         rs = self.round_state
         bucket = get_bucket(rs.hands[player_id] + rs.deck, self.round_state.bounties[player_id], self.hole_winrates)
 
-        return InformationSet(bucket, rs.pips, rs.stacks)
+        return InformationSet(bucket, rs.stacks[player_id], rs.stacks[1 - player_id])
 
     def __str__(self):
         if isinstance(self.round_state, TerminalState):
             return 'Deltas: ' + str(self.round_state.deltas) + '\nBounty Hits: ' + str(self.round_state.bounty_hits) + "\n_____________"
-        return 'Acti  ve: ' + str(self.active) +'\nButton: ' + str(self.round_state.button) + '\nStreet: ' + str(self.round_state.street) + '\nPips: ' + str(self.round_state.pips)  + '\nStacks: ' + str(self.round_state.stacks)  + '\nHands: ' + str(self.round_state.hands)  + '\nBounties: ' + str(self.round_state.bounties)  + '\nCommunity: ' + str(self.round_state.deck) + "\n_____________"
+        return 'Active: ' + str(self.active) +'\nButton: ' + str(self.round_state.button) + '\nStreet: ' + str(self.round_state.street) + '\nPips: ' + str(self.round_state.pips)  + '\nStacks: ' + str(self.round_state.stacks)  + '\nHands: ' + str(self.round_state.hands)  + '\nBounties: ' + str(self.round_state.bounties)  + '\nCommunity: ' + str(self.round_state.deck) + "\n_____________"

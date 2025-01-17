@@ -218,8 +218,12 @@ if __name__ == '__main__':
     trainer = CFR_Trainer()
     trainer.solve(50)
     strategy = trainer.get_equilibrium_strategy()
-
-    save_directory = f'CFR_TRAIN_DATA'
+    
+    data_folder = './CFR_TRAIN_DATA'
+    if not os.path.exists(data_folder):
+        os.mkdir(data_folder)
+    save_directory = f'{data_folder}/{datetime.now()}'
+    os.mkdir(save_directory)
 
     # Save equilibrium strategy
     CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)

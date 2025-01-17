@@ -22,6 +22,7 @@ where x[0] = bounty bool, x[1] = bucket from preflop, x[2] = bucket from flop, x
 
 # Bucket handstrength ranges:
 ![Bucket Ranges](ranges.png)
+Note: these buckets correspond to the index in a threshhold list. Actual buckets are i+1.
 
 Potential Function:
 

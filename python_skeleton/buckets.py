@@ -48,7 +48,7 @@ def get_bucket(hand, bounty, hole_winrates):
         hole_winrates: dictionary of hole winrates from csv
     
     Returns:
-        Bucket for current hand
+        Bucket for current hand as seen in the design doc
     """
     if len(hand) not in [2,5,6,7]:
         raise Exception('Hand must have 2,5,6,7 cards.')

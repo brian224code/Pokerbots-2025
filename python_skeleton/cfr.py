@@ -142,7 +142,7 @@ class CFR_Trainer:
             self.cumulative_strategy[hashable_info_set] = [0.0] * NUM_ACTIONS
 
         # Calculate utilities
-        expected_utility = 0
+        expected_utility = 0.0
         actual_utilities = [0.0] * NUM_ACTIONS
         legal_actions = history.get_legal_actions()
         for action, legal in enumerate(legal_actions):

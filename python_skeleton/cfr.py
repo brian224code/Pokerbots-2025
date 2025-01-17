@@ -85,7 +85,7 @@ class CFR_Trainer:
         Returns:
             normalized strategy if sum of cumulative regrets is > 0, else uniform strategy
         """
-        positive_regrets = [max(regret, 0) for regret in self.cumulative_regret[hashable_info_set]]
+        positive_regrets = [max(regret, 0.0) for regret in self.cumulative_regret[hashable_info_set]]
         
         if sum(positive_regrets) > 0:
             self.current_profile[hashable_info_set] = [

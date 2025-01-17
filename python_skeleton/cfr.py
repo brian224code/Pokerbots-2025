@@ -71,7 +71,7 @@ class CFR_Trainer:
         legal_actions = history.get_legal_actions()
 
         return [
-            1.0/sum(legal_actions) if legal else 0
+            1.0/sum(legal_actions) if legal else 0.0
             for legal in legal_actions
         ]
 
@@ -137,13 +137,13 @@ class CFR_Trainer:
         if hashable_info_set not in self.current_profile:
             self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
         if hashable_info_set not in self.cumulative_regret:
-            self.cumulative_regret[hashable_info_set] = [0] * NUM_ACTIONS
+            self.cumulative_regret[hashable_info_set] = [0.0] * NUM_ACTIONS
         if hashable_info_set not in self.cumulative_strategy:
-            self.cumulative_strategy[hashable_info_set] = [0] * NUM_ACTIONS
+            self.cumulative_strategy[hashable_info_set] = [0.0] * NUM_ACTIONS
 
         # Calculate utilities
         expected_utility = 0
-        actual_utilities = [0] * NUM_ACTIONS
+        actual_utilities = [0.0] * NUM_ACTIONS
         legal_actions = history.get_legal_actions()
         for action, legal in enumerate(legal_actions):
             if not legal:

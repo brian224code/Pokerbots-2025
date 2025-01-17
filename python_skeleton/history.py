@@ -12,7 +12,7 @@ import random
 import math
 import eval7
 
-RAISES = [40, 80, 120, 200]
+RAISES = [20, 40, 80]
 NUM_ACTIONS = 4 + len(RAISES)
 BOUNTY_RATIO = 1.5
 BOUNTY_CONSTANT = 10

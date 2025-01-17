@@ -216,7 +216,7 @@ class CFR_Trainer:
 
 if __name__ == '__main__':
     trainer = CFR_Trainer()
-    trainer.solve(1)
+    trainer.solve(1000)
     strategy = trainer.get_equilibrium_strategy()
 
     save_directory = f'./CFR_TRAIN_DATA/{datetime.now()}'

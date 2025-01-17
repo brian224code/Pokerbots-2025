@@ -85,7 +85,7 @@ class CFR_Trainer:
         Returns:
             normalized strategy if sum of cumulative regrets is > 0, else uniform strategy
         """
-        positive_regrets = [max(regret, 0) for regret in self.cumulative_regret[hashable_info_set]]
+        positive_regrets = [max(regret, 0.0) for regret in self.cumulative_regret[hashable_info_set]]
         
         if sum(positive_regrets) > 0:
             self.current_profile[hashable_info_set] = [
@@ -216,11 +216,10 @@ class CFR_Trainer:
 
 if __name__ == '__main__':
     trainer = CFR_Trainer()
-    trainer.solve(1000)
+    trainer.solve(50)
     strategy = trainer.get_equilibrium_strategy()
 
-    save_directory = f'./CFR_TRAIN_DATA/{datetime.now()}'
-    os.mkdir(save_directory)
+    save_directory = f'CFR_TRAIN_DATA'
 
     # Save equilibrium strategy
     CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
@@ -234,5 +233,5 @@ if __name__ == '__main__':
     with open(f'{save_directory}/regrets.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(trainer.regrets)
-    print(f'Saved data to {save_directory}/regrets.csv')
+    print(f'Saved data to {save_directory}\regrets.csv')
     

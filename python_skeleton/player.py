@@ -8,6 +8,10 @@ from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 
 from calculate_winrates import *
+from buckets import *
+from history import RAISES, NUM_ACTIONS, BOUNTY_CONSTANT, BOUNTY_RATIO
+from cfr import CFR_Trainer
+from information_set import InformationSet
 
 import random
 import math
@@ -29,7 +33,8 @@ class Player(Bot):
         Returns:
         Nothing.
         '''
-        self.hole_winrates = load_csv("winrates_for_street_size_0.csv") # returns a dictionary with frozensets as keys
+        self.hole_winrates = load_csv("hole_winrates.csv") # returns a dictionary with frozensets as keys
+        self.strategy = CFR_Trainer.load_from_csv('strategy.csv')
         self.post_turn_win_probability = 0
         self.won = False
         self.cheese = False
@@ -120,9 +125,6 @@ class Player(Bot):
         street = round_state.street  # 0, 3, 4, or 5 representing pre-flop, flop, turn, or river respectively
         my_cards = round_state.hands[active]  # your cards
         board_cards = round_state.deck[:street]  # the board cards
-        street = round_state.street  # 0, 3, 4, or 5 representing pre-flop, flop, turn, or river respectively
-        my_cards = round_state.hands[active]  # your cards
-        board_cards = round_state.deck[:street]  # the board cards
         my_pip = round_state.pips[active]  # the number of chips you have contributed to the pot this round of betting
         opp_pip = round_state.pips[1-active]  # the number of chips your opponent has contributed to the pot this round of betting
         my_stack = round_state.stacks[active]  # the number of chips you have remaining
@@ -144,6 +146,40 @@ class Player(Bot):
                 return FoldAction()
             return CheckAction()
 
+        card_bucket = get_bucket(my_cards + board_cards, my_bounty, self.hole_winrates)
+        info_set = InformationSet(card_bucket, my_stack, opp_stack)
+        hashable_info_set = str(info_set)
+        found_strategy = False
+        if hashable_info_set in self.strategy:
+            strategy = self.strategy[hashable_info_set]
+            found_strategy = True
+        else:
+            strategy = [0] * NUM_ACTIONS
+            for i in range(10):
+                for j in range(10):
+                    neighboring_hashable_info_set = hashable_info_set[:-3] + i + '|' + j
+                    if neighboring_hashable_info_set in self.strategy:
+                        found_strategy = True
+                        for k in range(NUM_ACTIONS):
+                            neighboring_strategy = self.strategy[neighboring_hashable_info_set]
+                            strategy[k] += neighboring_strategy[k]
+            strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
+
+        if found_strategy:
+            actions = [FoldAction, CallAction, CheckAction, max_raise] + RAISES
+            index = random.choices(range(NUM_ACTIONS), weights=strategy, k=1)[0]
+            if index < 3:
+                if actions[index] in legal_actions:
+                    return actions[index]()
+            else:
+                if RaiseAction in legal_actions:
+                    bet = actions[index]
+                    offset = random.randint(-5, 5)
+                    if bet + offset <= max_raise and bet + offset >= min_raise:
+                        return RaiseAction(bet + offset)
+                    else:
+                        return RaiseAction(max(min_raise, min(max_raise, bet)))
+        
         # Pre-flop
         if street == 0:
             print("Preflop")

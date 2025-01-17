@@ -1,22 +1,10 @@
-'''
-Simple example pokerbot, written in Python.
-'''
-
-import sys
-import os
-
-# Get the absolute path of the parent directory (one level up)
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-# Add the parent directory to sys.path
-sys.path.append(parent_dir)
-
-from python_skeleton.skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction
-from python_skeleton.skeleton.states import GameState, TerminalState, RoundState
-from python_skeleton.skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
-from python_skeleton.skeleton.bot import Bot
-from python_skeleton.skeleton.runner import parse_args, run_bot
-from python_skeleton.buckets import get_bucket
+from skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction
+from skeleton.states import GameState, TerminalState, RoundState
+from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
+from skeleton.bot import Bot
+from skeleton.runner import parse_args, run_bot
+from buckets import get_bucket
+from calculate_winrates import load_hole_winrates
 
 from information_set import InformationSet
 
@@ -24,7 +12,8 @@ import random
 import math
 import eval7
 
-NUM_ACTIONS = 10
+RAISES = [40, 80, 120, 200]
+NUM_ACTIONS = 4 + len(RAISES)
 BOUNTY_RATIO = 1.5
 BOUNTY_CONSTANT = 10
 
@@ -41,6 +30,7 @@ class History():
     def __init__(self, active, round_state):
         self.active = active # 0 or 1
         self.round_state = round_state
+        self.hole_winrates = load_hole_winrates('python_skeleton/hole_winrates.csv')
         # RoundState: ['button', 'street', 'pips', 'stacks', 'hands', 'bounties', 'deck', 'previous_state']
 
     @classmethod
@@ -194,16 +184,11 @@ class History():
             False if action is not legal
 
         Actions:
-            0 - Fold
-            1 - Call
-            2 - Check
-            3 - Raise (min)
-            4 - Raise (max raise/all in)
-            5 - Raise (1/3 pot)
-            6 - Raise (1/2 pot)
-            7 - Raise (full pot)
-            8 - Raise (1.5 pot)
-            9 - Raise (2 pot)
+            0  - Fold
+            1  - Call
+            2  - Check
+            3  - All In
+            4+ - Raises
         '''
         output = [False for _ in range(NUM_ACTIONS)]
 
@@ -216,28 +201,25 @@ class History():
 
         if RaiseAction in legal_actions:
             output[3] = True
-            output[4] = True
 
-            pot_fractions = self.calculate_pot_fractions()
-
-            for i, pot_frac in enumerate(pot_fractions):
-                if min_raise < pot_frac and max_raise > pot_frac:
-                    output[i+5] = True
+            for i, bet in enumerate(RAISES):
+                if min_raise < bet and max_raise > bet:
+                    output[i+4] = True
 
         return output
     
-    def calculate_pot_fractions(self):
-        '''
-        Return list of numbers corresponding to these fractions of pot: [1/3, 1/2, 1, 1.5, 2]
-        All decimal raises are floored
-        '''
-        my_stack = self.round_state.stacks[self.active]  # the number of chips you have remaining
-        opp_stack = self.round_state.stacks[1-self.active]  # the number of chips your opponent has remaining
-        my_contribution = STARTING_STACK - my_stack  # the number of chips you have contributed to the pot
-        opp_contribution = STARTING_STACK - opp_stack  # the number of chips your opponent has contributed to the pot
-        pot = my_contribution + opp_contribution
+    # def calculate_pot_fractions(self):
+    #     '''
+    #     Return list of numbers corresponding to these fractions of pot: [1/3, 1/2, 1, 1.5, 2]
+    #     All decimal raises are floored
+    #     '''
+    #     my_stack = self.round_state.stacks[self.active]  # the number of chips you have remaining
+    #     opp_stack = self.round_state.stacks[1-self.active]  # the number of chips your opponent has remaining
+    #     my_contribution = STARTING_STACK - my_stack  # the number of chips you have contributed to the pot
+    #     opp_contribution = STARTING_STACK - opp_stack  # the number of chips your opponent has contributed to the pot
+    #     pot = my_contribution + opp_contribution
 
-        return [pot // 3, pot // 2, pot, (pot * 3) // 2, pot * 2]
+    #     return [int(pot * fraction) for fraction in POT_RAISE_FRACTIONS]
     
     def generate_action_outcome(self, action_index):
         '''
@@ -245,20 +227,15 @@ class History():
 
         @param player_id
         @param action Action of input player as follows:
-            0 - Fold
-            1 - Call
-            2 - Check
-            3 - Raise (min)
-            4 - Raise (max raise/all in)
-            5 - Raise (1/3 pot)
-            6 - Raise (1/2 pot)
-            7 - Raise (full pot)
-            8 - Raise (1.5 pot)
-            9 - Raise (2 pot)
+            0  - Fold
+            1  - Call
+            2  - Check
+            3  - All In
+            4+ - Raises
         '''
 
         min_raise, max_raise = self.round_state.raise_bounds()
-        actions = [FoldAction, CallAction, CheckAction, min_raise, max_raise] + self.calculate_pot_fractions()
+        actions = [FoldAction, CallAction, CheckAction, max_raise] + RAISES
 
         # sb call bb
         if action_index == 1 and self.round_state.button == 0:
@@ -276,7 +253,7 @@ class History():
         Returns information set for input player to use in CFR algorithm
         '''
         rs = self.round_state
-        bucket = get_bucket(rs.hands[player_id] + rs.deck)
+        bucket = get_bucket(rs.hands[player_id] + rs.deck, self.round_state.bounties[player_id], self.hole_winrates)
 
         return InformationSet(bucket, rs.pips, rs.stacks)
 

@@ -1,8 +1,10 @@
 from information_set import InformationSet
 from history import History, NUM_ACTIONS
 import csv
+import os
+from datetime import datetime
 import pandas as pd
-import tqdm
+from tqdm import tqdm
 
 class CFR_Trainer:
     def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename=''):
@@ -117,6 +119,20 @@ class CFR_Trainer:
         # Get information set and set it up in the cumulative tables if not seen yet
         information_set = history.get_player_info(player)
         hashable_info_set = str(information_set)
+
+        # print('---------------------------------')
+
+        # print(f'Info set: {hashable_info_set}')
+        # print(f'Street: {history.round_state.street}')
+        # print(f'Hands: {history.round_state.hands}')
+        # print(f'Comm cards: {history.round_state.deck}')
+        # print(f'Pot: {sum(history.round_state.stacks)}')
+                
+        # print(f'Cumulative Regrets: {self.cumulative_regret}')
+        # print(f'Cumulative Strategy: {self.cumulative_strategy}')
+        # print(f'Current Profile: {self.current_profile}')
+        # print(f'Regrets: {self.regrets}')
+
         if hashable_info_set not in self.current_profile:
             self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
         if hashable_info_set not in self.cumulative_regret:
@@ -131,7 +147,6 @@ class CFR_Trainer:
         for action, legal in enumerate(legal_actions):
             if not legal:
                 continue
-
             new_history = history.generate_action_outcome(action)
             action_weight = self.current_profile[hashable_info_set][action]
             
@@ -141,7 +156,7 @@ class CFR_Trainer:
                 actual_utilities[action] = self.CFR(new_history, player, t, (reach_probs[0], action_weight*reach_probs[1]))
 
             expected_utility += action_weight*actual_utilities[action]
-
+        
         # Update strategies if learning player is currently taking the action
         if history.get_active_player() == player:
             for action, legal in enumerate(legal_actions):
@@ -174,7 +189,7 @@ class CFR_Trainer:
             and value = list of weights for each of the 10 actions
         """
         return {
-            information_set: [weight / sum(strategy) for weight in strategy]
+            information_set: [weight / sum(strategy) if weight else 0.0 for weight in strategy]
             for information_set, strategy in self.cumulative_strategy.items()
         }
     
@@ -201,22 +216,23 @@ class CFR_Trainer:
 
 if __name__ == '__main__':
     trainer = CFR_Trainer()
-    trainer.solve(100000)
+    trainer.solve(1)
     strategy = trainer.get_equilibrium_strategy()
 
-    print('Saving strategies and regrets...')
+    save_directory = f'./CFR_TRAIN_DATA/{datetime.now()}'
+    os.mkdir(save_directory)
 
     # Save equilibrium strategy
-    CFR_Trainer.save_to_csv('strategy.csv', strategy)
+    CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
 
     # Save tables for future training
-    CFR_Trainer.save_to_csv('cumulative_strategy.csv', trainer.cumulative_strategy)
-    CFR_Trainer.save_to_csv('cumulative_regret.csv', trainer.cumulative_regret)
-    CFR_Trainer.save_to_csv('current_profile.csv', trainer.current_profile)
+    CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_strategy.csv', trainer.cumulative_strategy)
+    CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_regret.csv', trainer.cumulative_regret)
+    CFR_Trainer.save_to_csv(f'{save_directory}/current_profile.csv', trainer.current_profile)
 
     # Save regrets to see if it converged
-    with open('regrets.csv', 'w', newline='') as file:
+    with open(f'{save_directory}/regrets.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(trainer.regrets)
-    print('Saved regrets to regrets.csv')
+    print(f'Saved data to {save_directory}/regrets.csv')
     

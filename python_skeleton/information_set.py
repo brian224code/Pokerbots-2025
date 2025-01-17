@@ -1,4 +1,4 @@
-from python_skeleton.buckets import Bucket
+from buckets import Bucket
 
 '''
 Information set for CFR algorithm

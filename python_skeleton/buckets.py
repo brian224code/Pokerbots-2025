@@ -99,7 +99,7 @@ def get_bucket(hand, bounty, hole_winrates):
             bucket.turn = len(TURN_RANGES) + potential
         else:
             score = eval7.evaluate(current_hand)
-            for i, threshhold in TURN_RANGES:
+            for i, threshhold in enumerate(TURN_RANGES):
                 if score <= threshhold:
                     bucket.turn = i + 1
                     break

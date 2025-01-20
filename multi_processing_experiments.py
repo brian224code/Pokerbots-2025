@@ -8,10 +8,14 @@ class Trainer:
             0: 0,
             1: 0
         }
+        self.locks = None
 
     def algo(self, player, t):
-        sleep(random())
-        self.data[player] += 1
+        player = 1
+        sleep(random())    
+        with self.locks[player]:
+            sleep(random())
+            self.data[player] += 1
         print(f'Player {player} says hello from iter {t}')
 
     def solve(self, iters, multi_processing=True):
@@ -20,6 +24,10 @@ class Trainer:
             print(f'Setting up dict managers...')
             manager = mp.Manager()
             self.data = manager.dict(self.data)
+            self.locks = manager.dict({
+                0: manager.Lock(),
+                1: manager.Lock()
+            })
 
             print(f'Parallel training with {num_cores} cpu cores...')
             parallelization_factor = num_cores // 2
@@ -42,6 +50,7 @@ class Trainer:
 
             print(f'Closing dict managers...')
             self.data = dict(self.data)
+            self.locks = None
 
         else:
              print('Training sequentially...')
@@ -52,5 +61,5 @@ class Trainer:
 
 if __name__ == '__main__':
     trainer = Trainer()
-    trainer.solve()
+    trainer.solve(100)
     print(trainer.data)

@@ -378,6 +378,11 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                             self.locks[new_info_set] = self.manager.Lock()
                     except queue.Empty:
                         pass
+
+                    sleep(0.5)
+
+                for process in processes:
+                    process.join()
                 
                 pbar.update(parallel_factor)
 
@@ -417,9 +422,8 @@ if __name__ == '__main__':
     # print(f'Saved data to {save_directory}\regrets.csv')
 
     trainer = Parallel_CFR_Trainer('./CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/cumulative_regret.csv', './CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/cumulative_strategy.csv', './CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/current_profile.csv')
-    trainer.solve(20)
+    trainer.solve(200)
     strategy = trainer.get_equilibrium_strategy()
-    
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):
         os.mkdir(data_folder)

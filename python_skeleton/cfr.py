@@ -10,6 +10,7 @@ import queue
 from time import sleep
 
 PLAYERS = 2
+POLLING_RATE = 0.01
 
 class CFR_Trainer:
     def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename=''):
@@ -220,9 +221,9 @@ class CFR_Trainer:
         print(f'Saved data to {filename}.')
 
 class Parallel_CFR_Trainer(CFR_Trainer):
-    def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename='', workers=mp.cpu_count()-1):
+    def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename='', workers=mp.cpu_count()-3):
         # should use os.process_cpu_count() on python 3.13+ because it is safer, but both say 10 on my MacBook
-        self.num_cores = min(mp.cpu_count()-1, workers)
+        self.num_cores = min(mp.cpu_count()-3, workers)
         print(f'Identified {self.num_cores} cpu cores.')
         self.manager = mp.Manager()
         self.new_info_sets = mp.Queue(maxsize=1)
@@ -303,7 +304,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
         if hashable_info_set not in locks:
             new_info_sets.put((hashable_info_set, Parallel_CFR_Trainer.generate_uniform_strategy(history)))
             while hashable_info_set not in locks:
-                sleep(0.01)
+                sleep(POLLING_RATE)
 
         # Calculate utilities
         expected_utility = 0.0
@@ -377,9 +378,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                             self.current_profile[new_info_set] = self.manager.list(uniform_strategy)
                             self.locks[new_info_set] = self.manager.Lock()
                     except queue.Empty:
-                        pass
-
-                    sleep(0.5)
+                        sleep(POLLING_RATE)
 
                 for process in processes:
                     process.join()
@@ -421,14 +420,19 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
-    trainer = Parallel_CFR_Trainer('./CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/cumulative_regret.csv', './CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/cumulative_strategy.csv', './CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/current_profile.csv')
-    trainer.solve(200)
+    trainer = Parallel_CFR_Trainer(
+        './CFR_TRAIN_DATA/cumulative_regret.csv', 
+        './CFR_TRAIN_DATA/cumulative_strategy.csv', 
+        './CFR_TRAIN_DATA/current_profile.csv'
+    )
+    trainer.solve(400)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):
         os.mkdir(data_folder)
-    save_directory = f'{data_folder}/{datetime.now()}'
-    os.mkdir(save_directory)
+    # save_directory = f'{data_folder}/{datetime.now()}'
+    # os.mkdir(save_directory)
+    save_directory = data_folder
 
     # Save equilibrium strategy
     Parallel_CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)

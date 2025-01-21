@@ -1,8 +1,6 @@
 from skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction
-from skeleton.states import GameState, TerminalState, RoundState
-from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
-from skeleton.bot import Bot
-from skeleton.runner import parse_args, run_bot
+from skeleton.states import TerminalState, RoundState
+from skeleton.states import STARTING_STACK, BIG_BLIND, SMALL_BLIND
 from buckets import get_bucket
 from calculate_winrates import load_hole_winrates
 
@@ -25,39 +23,70 @@ class History():
     @param active Either 0 or 1 to indicate the active player
     @param roundState Representation of round state used by states.py and runner.py
         TODO: can maybe use engine.py? figure out engine.py vs states.py
+    @param in_deck List representing input community cards (round_state has in_hand player 0 cards in this case)
     '''
 
-    def __init__(self, active, round_state):
+    def __init__(self, active, round_state, set_deck=None):
+        self.set_deck = set_deck
         self.active = active # 0 or 1
         self.round_state = round_state
         self.hole_winrates = load_hole_winrates('python_skeleton/hole_winrates.csv')
         # RoundState: ['button', 'street', 'pips', 'stacks', 'hands', 'bounties', 'deck', 'previous_state']
 
     @classmethod
-    def generate_initial_node(cls, start_player):
+    def generate_initial_node(cls, start_player, set_cards=None, set_buckets=None):
         '''
         Return History representative of beginning of round
-        '''
-        # deal hands at random
-        full_deck = eval7.Deck()
-        full_deck.shuffle()
 
-        # Deal two hands with 2 cards each
-        hand0 = [str(full_deck.cards.pop()), str(full_deck.cards.pop())]
-        hand1 = [str(full_deck.cards.pop()), str(full_deck.cards.pop())]
-        hands = [hand0, hand1]
+        @param set_cards List of specific cards to play this round ([0:2] player, [2:7] community)
+        @param set_buckets Gives bucket in form of string: 'bounty|preflop|flop|turn|river'
+        '''
 
         # pick bounties at random
         bounty_chars = [str(i) for i in range(2, 10)] + ['T', 'J', 'Q', 'K', 'A']
         bounties = [bounty_chars[random.randint(0, 12)], bounty_chars[random.randint(0, 12)]]
 
-        deck = [] # unlike engine structure, we fill this as we reach chance nodes
+        # set stacks and set pips based on start player
         pips = [SMALL_BLIND, BIG_BLIND] if start_player == 0 else [BIG_BLIND, SMALL_BLIND]
         stacks = [STARTING_STACK - pips[0], STARTING_STACK - pips[1]]
-        round_state = RoundState(0, 0, pips, stacks, hands, bounties, deck, None)
+        deck = [] # unlike engine structure, we fill this as we reach chance nodes
 
-        # TODO start player should be small blind
-        return History(start_player, round_state)
+        full_deck = eval7.Deck()
+        full_deck.shuffle()
+        
+        if set_cards or set_buckets:
+            if set_buckets:
+                # choose representative list of 2 player + 5 community cards
+                flags = set_buckets.split('|')
+
+                # TODO: actually make this work lol; for now should error
+
+                bounty = int(flags[0])
+                preflop = int(flags[1])
+                flop = int(flags[2])
+                turn = int(flags[3])
+                river = int(flags[4])
+
+            assert len(set_cards) == 7
+
+            for card in set_cards:
+                full_deck.cards.remove(eval7.Card(card))
+
+            # set player 0's cards based on input and player 1's cards random
+            hand0 = set_cards[:2]
+            hand1 = [str(card) for card in full_deck.deal(2)]
+            hands = [hand0, hand1]
+            set_deck = set_cards[2:]
+        
+        else:
+            # deal two hands at random
+            hand0 = [str(card) for card in full_deck.deal(2)]
+            hand1 = [str(card) for card in full_deck.deal(2)]
+            hands = [hand0, hand1]
+            set_deck = None
+
+        round_state = RoundState(0, 0, pips, stacks, hands, bounties, deck, None)
+        return History(start_player, round_state, set_deck)
 
     def get_active_player(self):
         '''
@@ -156,26 +185,31 @@ class History():
         '''
         Returns new History representative of sampling an outcome if state is chance node
         '''
-        dealt_cards = self.round_state.hands[0] + self.round_state.hands[1] + self.round_state.deck
-
-        # get deck of remaining cards
-        full_deck = eval7.Deck()
-        full_deck.shuffle()
-        for card in dealt_cards:
-            full_deck.cards.remove(eval7.Card(card))
 
         # update community cards (deck)
-        new_deck = list(self.round_state.deck)
-        if self.round_state.street == 3:
-            for _ in range(3):
-                new_deck.append(str(full_deck.cards.pop()))
+        if self.set_deck:
+            new_deck = self.set_deck[:self.round_state.street] # reveal cards based on pre-set deck
         else:
-            new_deck.append(str(full_deck.cards.pop()))
+            # get deck of remaining cards
+            full_deck = eval7.Deck()
+            full_deck.shuffle()
+
+            dealt_cards = self.round_state.hands[0] + self.round_state.hands[1] + self.round_state.deck
+            for card in dealt_cards:
+                full_deck.cards.remove(eval7.Card(card))
+
+            # reveal new community cards at random
+            new_deck = list(self.round_state.deck)
+            if self.round_state.street == 3:
+                for _ in range(3):
+                    new_deck.append(str(full_deck.cards.pop()))
+            else:
+                new_deck.append(str(full_deck.cards.pop()))
 
         new_pips = list(self.round_state.pips)
         new_stacks = list(self.round_state.stacks)
         state = RoundState(1, self.round_state.street, new_pips, new_stacks, self.round_state.hands, self.round_state.bounties, new_deck, self.round_state)
-        return History(1, state) # active = button % 2
+        return History(1, state, self.set_deck) # active = button % 2
 
     def get_legal_actions(self):
         '''
@@ -227,13 +261,13 @@ class History():
         # sb call bb
         if action_index == 1 and self.round_state.button == 0:
             rs = RoundState(1, 3, [BIG_BLIND] * 2, [STARTING_STACK - BIG_BLIND] * 2, self.round_state.hands, self.round_state.bounties, self.round_state.deck, self.round_state)
-            return History(1-self.active, rs)
+            return History(1-self.active, rs, self.set_deck)
 
         # TODO: should maybe check if input action is legal when debugging
         if action_index < 3:
-            return History(1-self.active, self.round_state.proceed(actions[action_index]()))
+            return History(1-self.active, self.round_state.proceed(actions[action_index]()), self.set_deck)
         else:
-            return History(1-self.active, self.round_state.proceed(RaiseAction(actions[action_index])))
+            return History(1-self.active, self.round_state.proceed(RaiseAction(actions[action_index])), self.set_deck)
 
     def get_player_info(self, player_id):
         '''
@@ -248,3 +282,52 @@ class History():
         if isinstance(self.round_state, TerminalState):
             return 'Deltas: ' + str(self.round_state.deltas) + '\nBounty Hits: ' + str(self.round_state.bounty_hits) + "\n_____________"
         return 'Active: ' + str(self.active) +'\nButton: ' + str(self.round_state.button) + '\nStreet: ' + str(self.round_state.street) + '\nPips: ' + str(self.round_state.pips)  + '\nStacks: ' + str(self.round_state.stacks)  + '\nHands: ' + str(self.round_state.hands)  + '\nBounties: ' + str(self.round_state.bounties)  + '\nCommunity: ' + str(self.round_state.deck) + "\n_____________"
+
+# if __name__ == '__main__':
+#     set_cards = ['As', 'Ks', 'Qs', 'Js', 'Ts', '2d', '2c']
+#     rs = History.generate_initial_node(0)
+#     print(rs)
+#     print(rs.get_node_type())
+    
+#     # pre-flop
+#     rs = rs.generate_action_outcome(1) # call
+#     print(rs)
+#     print(rs.get_node_type())
+
+#     rs = rs.generate_chance_outcome()
+#     print(rs)
+#     print(rs.get_node_type())
+
+#     # post-flop
+#     rs = rs.generate_action_outcome(2) # check
+#     print(rs)
+#     print(rs.get_node_type())
+#     rs = rs.generate_action_outcome(2) # check
+#     print(rs)
+#     print(rs.get_node_type())
+
+#     rs = rs.generate_chance_outcome()
+#     print(rs)
+#     print(rs.get_node_type())
+
+#     # turn
+#     rs = rs.generate_action_outcome(2) # check
+#     print(rs)
+#     print(rs.get_node_type())
+#     rs = rs.generate_action_outcome(2) # check
+#     print(rs)
+#     print(rs.get_node_type())
+
+#     rs = rs.generate_chance_outcome()
+#     print(rs)
+#     print(rs.get_node_type())
+    
+#     # river
+#     rs = rs.generate_action_outcome(2) # check
+#     print(rs)
+#     print(rs.get_node_type())
+#     rs = rs.generate_action_outcome(2) # check
+#     print(rs)
+#     print(rs.get_node_type())
+
+

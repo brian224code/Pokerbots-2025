@@ -421,13 +421,13 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
-    latest = '2025-01-21 16:28:58.931013'
+    latest = '2025-01-21 17:10:10.325563'
     trainer = Parallel_CFR_Trainer(
         f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
         f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
         f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
     )
-    trainer.solve(3)
+    trainer.solve(411)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):

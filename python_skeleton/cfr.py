@@ -416,16 +416,15 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
-    trainer = Parallel_CFR_Trainer()
+    trainer = Parallel_CFR_Trainer('./CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/cumulative_regret.csv', './CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/cumulative_strategy.csv', './CFR_TRAIN_DATA/2025-01-20 20:27:32.881128/current_profile.csv')
     trainer.solve(20)
     strategy = trainer.get_equilibrium_strategy()
     
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):
         os.mkdir(data_folder)
-    # save_directory = f'{data_folder}/{datetime.now()}'
-    # os.mkdir(save_directory)
-    save_directory = data_folder
+    save_directory = f'{data_folder}/{datetime.now()}'
+    os.mkdir(save_directory)
 
     # Save equilibrium strategy
     Parallel_CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)

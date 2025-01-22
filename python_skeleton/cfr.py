@@ -101,7 +101,7 @@ class CFR_Trainer:
         else:
             self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
 
-    def CFR(self, history, player, t, reach_probs):
+    def CFR(self, history, player, t, reach_probs, dual_learning=False):
         """
         CFR algorithm described in Algo 1
 
@@ -117,10 +117,10 @@ class CFR_Trainer:
         """
         # Deal with terminal and chance nodes
         if history.get_node_type() == 'T':
-            return history.get_utility(player)
+            return history.get_utility(player, dual_learning)
         elif history.get_node_type() == 'C':
             new_history = history.generate_chance_outcome()
-            return self.CFR(new_history, player, t, reach_probs)
+            return self.CFR(new_history, player, t, reach_probs, dual_learning)
         
         # Get information set and set it up in the cumulative tables if not seen yet
         information_set = history.get_player_info(history.get_active_player())
@@ -147,7 +147,7 @@ class CFR_Trainer:
             self.cumulative_strategy[hashable_info_set] = [0.0] * NUM_ACTIONS
 
         # Calculate utilities
-        expected_utility = 0.0
+        expected_utility = [0.0, 0.0] if dual_learning else 0.0
         actual_utilities = [0.0] * NUM_ACTIONS
         legal_actions = history.get_legal_actions()
         for action, legal in enumerate(legal_actions):
@@ -157,27 +157,38 @@ class CFR_Trainer:
             action_weight = self.current_profile[hashable_info_set][action]
             
             if history.get_active_player() == 0:
-                actual_utilities[action] = self.CFR(new_history, player, t, (action_weight*reach_probs[0], reach_probs[1]))
+                actual_utilities[action] = self.CFR(new_history, player, t, (action_weight*reach_probs[0], reach_probs[1]), dual_learning)
             else:
-                actual_utilities[action] = self.CFR(new_history, player, t, (reach_probs[0], action_weight*reach_probs[1]))
+                actual_utilities[action] = self.CFR(new_history, player, t, (reach_probs[0], action_weight*reach_probs[1]), dual_learning)
 
-            expected_utility += action_weight*actual_utilities[action]
+            if dual_learning:
+                expected_utility[0] += action_weight*actual_utilities[action][0]
+                expected_utility[1] += action_weight*actual_utilities[action][1]
+            else:
+                expected_utility += action_weight*actual_utilities[action]
         
         # Update strategies if learning player is currently taking the action
-        if history.get_active_player() == player:
+        if history.get_active_player() == player or dual_learning:
+
+            active_player = history.get_active_player()
+
             for action, legal in enumerate(legal_actions):
                 if not legal:
                     continue
 
                 action_weight = self.current_profile[hashable_info_set][action]
 
-                self.update_cumulative_regret(hashable_info_set, action, actual_utilities[action], expected_utility, reach_probs[1-player])
-                self.update_cumulative_strategy(hashable_info_set, action, reach_probs[player], action_weight)
+                if dual_learning:
+                    self.update_cumulative_regret(hashable_info_set, action, actual_utilities[action][active_player], expected_utility[active_player], reach_probs[1-active_player])
+                else:
+                    self.update_cumulative_regret(hashable_info_set, action, actual_utilities[action], expected_utility, reach_probs[1-active_player])
+
+                self.update_cumulative_strategy(hashable_info_set, action, reach_probs[active_player], action_weight)
             self.update_current_profile(hashable_info_set, history)
         
         return expected_utility
                 
-    def solve(self, iters):
+    def solve(self, iters, dual_learning=False):
         """
         Runs the CFR algorithm
 
@@ -186,7 +197,7 @@ class CFR_Trainer:
         """
         for t in tqdm(range(iters), desc='Training', unit='iteration', total=iters):
             for player in [0, 1]:
-                self.CFR(History.generate_initial_node(player), player, t, (1.0, 1.0))
+                self.CFR(History.generate_initial_node(player), player, t, (1.0, 1.0), dual_learning)
 
     def get_equilibrium_strategy(self):
         """
@@ -399,10 +410,38 @@ class Parallel_CFR_Trainer(CFR_Trainer):
         return table
 
 if __name__ == '__main__':
-    # trainer = CFR_Trainer('./CFR_TRAIN_DATA/2025-01-20 11:49:01.720963/cumulative_regret.csv', './CFR_TRAIN_DATA/2025-01-20 11:49:01.720963/cumulative_strategy.csv', './CFR_TRAIN_DATA/2025-01-20 11:49:01.720963/current_profile.csv')
-    # trainer.solve(20)
-    # strategy = trainer.get_equilibrium_strategy()
+    trainer = CFR_Trainer()
+    trainer.solve(5, dual_learning=True)
+    strategy = trainer.get_equilibrium_strategy()
     
+    data_folder = './CFR_TRAIN_DATA'
+    if not os.path.exists(data_folder):
+        os.mkdir(data_folder)
+    save_directory = f'{data_folder}/{datetime.now()}'
+    os.mkdir(save_directory)
+
+    # Save equilibrium strategy
+    CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
+
+    # Save tables for future training
+    CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_strategy.csv', trainer.cumulative_strategy)
+    CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_regret.csv', trainer.cumulative_regret)
+    CFR_Trainer.save_to_csv(f'{save_directory}/current_profile.csv', trainer.current_profile)
+
+    # Save regrets to see if it converged
+    with open(f'{save_directory}/regrets.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(trainer.regrets)
+    print(f'Saved data to {save_directory}\regrets.csv')
+
+    # latest = ''
+    # trainer = Parallel_CFR_Trainer()
+    # #     f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
+    # #     f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
+    # #     f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
+    # # )
+    # trainer.solve(140)
+    # strategy = trainer.get_equilibrium_strategy()
     # data_folder = './CFR_TRAIN_DATA'
     # if not os.path.exists(data_folder):
     #     os.mkdir(data_folder)
@@ -410,7 +449,7 @@ if __name__ == '__main__':
     # os.mkdir(save_directory)
 
     # # Save equilibrium strategy
-    # CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
+    # Parallel_CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
 
     # # Save tables for future training
     # CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_strategy.csv', trainer.cumulative_strategy)

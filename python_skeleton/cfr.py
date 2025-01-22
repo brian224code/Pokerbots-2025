@@ -304,7 +304,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
     def CFR(cls, history, player, t, reach_probs, new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks, dual_learning=False):
         # Deal with terminal and chance nodes
         if history.get_node_type() == 'T':
-            return history.get_utility(player)
+            return history.get_utility(player, dual_learning)
         elif history.get_node_type() == 'C':
             new_history = history.generate_chance_outcome()
             return Parallel_CFR_Trainer.CFR(new_history, player, t, reach_probs,

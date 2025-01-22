@@ -34,31 +34,6 @@ class CFR_Trainer:
             self.cumulative_strategy = {} 
             self.current_profile = {}
 
-            for bounty in range(2):
-                for wetness in range(3):
-                    for my_stack in range(10):
-                        for opp_stack in range(10):
-                            for preflop in range(1,11):
-                                info_set = f'{bounty}|{wetness}|{preflop}|0|0|0|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = [0.0] * NUM_ACTIONS
-                                self.cumulative_strategy[info_set] = [0.0] * NUM_ACTIONS
-                                self.current_profile[info_set] = [0.0] * NUM_ACTIONS
-                            for flop in range(1,13):
-                                info_set = f'{bounty}|{wetness}|0|{flop}|0|0|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = [0.0] * NUM_ACTIONS
-                                self.cumulative_strategy[info_set] = [0.0] * NUM_ACTIONS
-                                self.current_profile[info_set] = [0.0] * NUM_ACTIONS
-                            for turn in range(1,13):
-                                info_set = f'{bounty}|{wetness}|0|0|{turn}|0|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = [0.0] * NUM_ACTIONS
-                                self.cumulative_strategy[info_set] = [0.0] * NUM_ACTIONS
-                                self.current_profile[info_set] = [0.0] * NUM_ACTIONS
-                            for river in range(1,11):
-                                info_set = f'{bounty}|{wetness}|0|0|0|{river}|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = [0.0] * NUM_ACTIONS
-                                self.cumulative_strategy[info_set] = [0.0] * NUM_ACTIONS
-                                self.current_profile[info_set] = [0.0] * NUM_ACTIONS
-
         self.regrets = [] # used for checking if we converged
 
     def update_cumulative_regret(self, hashable_info_set, action, actual_utility, expected_utility, opp_reach_prob):
@@ -164,15 +139,12 @@ class CFR_Trainer:
         # print(f'Current Profile: {self.current_profile}')
         # print(f'Regrets: {self.regrets}')
 
-        # if hashable_info_set not in self.current_profile:
-        #     self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
-        # if hashable_info_set not in self.cumulative_regret:
-        #     self.cumulative_regret[hashable_info_set] = [0.0] * NUM_ACTIONS
-        # if hashable_info_set not in self.cumulative_strategy:
-        #     self.cumulative_strategy[hashable_info_set] = [0.0] * NUM_ACTIONS
-
-        if not self.current_profile[hashable_info_set]:
+        if hashable_info_set not in self.current_profile:
             self.current_profile[hashable_info_set] = self.generate_uniform_strategy(history)
+        if hashable_info_set not in self.cumulative_regret:
+            self.cumulative_regret[hashable_info_set] = [0.0] * NUM_ACTIONS
+        if hashable_info_set not in self.cumulative_strategy:
+            self.cumulative_strategy[hashable_info_set] = [0.0] * NUM_ACTIONS
 
         # Calculate utilities
         expected_utility = [0.0, 0.0] if dual_learning else 0.0
@@ -260,13 +232,13 @@ class CFR_Trainer:
         print(f'Saved data to {filename}.')
 
 class Parallel_CFR_Trainer(CFR_Trainer):
-    def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename='', workers=mp.cpu_count()-2):
+    def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename='', workers=mp.cpu_count()-3):
         # should use os.process_cpu_count() on python 3.13+ because it is safer, but both say 10 on my MacBook
-        # leave 1 core for os/parent process, and 1 core for shared memory manager
-        self.num_cores = min(mp.cpu_count()-2, workers)
+        # leave 1 core for os, 1 core for parent process, and 1 core for shared memory manager
+        self.num_cores = min(mp.cpu_count()-3, workers)
         print(f'Using {self.num_cores} cpu cores for worker processes.')
         self.manager = mp.Manager()
-        # self.new_info_sets = mp.Queue(maxsize=1)
+        self.new_info_sets = mp.Queue(maxsize=1)
 
         if cumulative_regret_filename and cumulative_strategy_filename and current_profile_filename:
             print(f'Loading existing weights...')
@@ -291,35 +263,6 @@ class Parallel_CFR_Trainer(CFR_Trainer):
             self.cumulative_strategy = self.manager.dict()
             self.current_profile = self.manager.dict()
             self.locks = self.manager.dict()
-
-            for bounty in range(2):
-                for wetness in range(3):
-                    for my_stack in range(10):
-                        for opp_stack in range(10):
-                            for preflop in range(1,11):
-                                info_set = f'{bounty}|{wetness}|{preflop}|0|0|0|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.cumulative_strategy[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.current_profile[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.locks[info_set] = self.manager.Lock()
-                            for flop in range(1,13):
-                                info_set = f'{bounty}|{wetness}|0|{flop}|0|0|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.cumulative_strategy[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.current_profile[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.locks[info_set] = self.manager.Lock()
-                            for turn in range(1,13):
-                                info_set = f'{bounty}|{wetness}|0|0|{turn}|0|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.cumulative_strategy[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.current_profile[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.locks[info_set] = self.manager.Lock()
-                            for river in range(1,11):
-                                info_set = f'{bounty}|{wetness}|0|0|0|{river}|{my_stack}|{opp_stack}'
-                                self.cumulative_regret[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.cumulative_strategy[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.current_profile[info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                                self.locks[info_set] = self.manager.Lock()
 
         print('Trainer initialized.')
 
@@ -371,21 +314,16 @@ class Parallel_CFR_Trainer(CFR_Trainer):
         information_set = history.get_player_info(history.get_active_player())
         hashable_info_set = str(information_set)
 
-        # if hashable_info_set not in locks:
-        #     new_info_sets.put((hashable_info_set, Parallel_CFR_Trainer.generate_uniform_strategy(history)))
-        #     while hashable_info_set not in locks:
-        #         sleep(POLLING_RATE)
+        if hashable_info_set not in locks:
+            new_info_sets.put((hashable_info_set, Parallel_CFR_Trainer.generate_uniform_strategy(history)))
+            while hashable_info_set not in locks:
+                sleep(POLLING_RATE)
 
         # Calculate utilities
         expected_utility = [0.0, 0.0] if dual_learning else 0.0
         actual_utilities = [0.0] * NUM_ACTIONS
         legal_actions = history.get_legal_actions()
         with locks[hashable_info_set]:
-            if not sum(current_profile[hashable_info_set]):
-                uniform_strategy = Parallel_CFR_Trainer.generate_uniform_strategy(history)
-                for action in range(NUM_ACTIONS):
-                    current_profile[hashable_info_set][action] = uniform_strategy[action]
-
             current_strategy = list(current_profile[hashable_info_set])
             
         for action, legal in enumerate(legal_actions):
@@ -441,7 +379,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                             History.generate_initial_node(player), 
                             player, 
                             t, 
-                            (1.0, 1.0), 
+                            (1.0, 1.0),
                             self.new_info_sets,
                             self.cumulative_regret,
                             self.cumulative_strategy,
@@ -457,16 +395,16 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                 for process in processes:
                     process.start()
                 
-                # while any(map(lambda process: process.is_alive(), processes)):
-                #     try:
-                #         new_info_set, uniform_strategy = self.new_info_sets.get(block=False)
-                #         if new_info_set not in self.locks:
-                #             self.cumulative_regret[new_info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                #             self.cumulative_strategy[new_info_set] = self.manager.list([0.0] * NUM_ACTIONS)
-                #             self.current_profile[new_info_set] = self.manager.list(uniform_strategy)
-                #             self.locks[new_info_set] = self.manager.Lock()
-                #     except queue.Empty:
-                #         sleep(POLLING_RATE)
+                while any(map(lambda process: process.is_alive(), processes)):
+                    try:
+                        new_info_set, uniform_strategy = self.new_info_sets.get(block=False)
+                        if new_info_set not in self.locks:
+                            self.cumulative_regret[new_info_set] = self.manager.list([0.0] * NUM_ACTIONS)
+                            self.cumulative_strategy[new_info_set] = self.manager.list([0.0] * NUM_ACTIONS)
+                            self.current_profile[new_info_set] = self.manager.list(uniform_strategy)
+                            self.locks[new_info_set] = self.manager.Lock()
+                    except queue.Empty:
+                        sleep(POLLING_RATE)
 
                 for process in processes:
                     process.join()
@@ -508,13 +446,13 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
-    latest = ''
-    trainer = Parallel_CFR_Trainer()
-    #     f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
-    #     f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
-    #     f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
-    # )
-    trainer.solve(1, dual_learning=True)
+    latest = '2025-01-22 10:42:48.999157'
+    trainer = Parallel_CFR_Trainer(
+        f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
+        f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
+        f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
+    )
+    trainer.solve(170)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):

@@ -298,7 +298,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                                             new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks)
         
         # Get information set and set it up in the cumulative tables if not seen yet
-        information_set = history.get_player_info(player)
+        information_set = history.get_player_info(history.get_active_player())
         hashable_info_set = str(information_set)
 
         if hashable_info_set not in locks:
@@ -420,12 +420,12 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
-    trainer = Parallel_CFR_Trainer(
-        './CFR_TRAIN_DATA/cumulative_regret.csv', 
-        './CFR_TRAIN_DATA/cumulative_strategy.csv', 
-        './CFR_TRAIN_DATA/current_profile.csv'
-    )
-    trainer.solve(360)
+    trainer = Parallel_CFR_Trainer()
+    #     './CFR_TRAIN_DATA/cumulative_regret.csv', 
+    #     './CFR_TRAIN_DATA/cumulative_strategy.csv', 
+    #     './CFR_TRAIN_DATA/current_profile.csv'
+    # )
+    trainer.solve(300)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):

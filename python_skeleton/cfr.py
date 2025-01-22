@@ -301,14 +301,14 @@ class Parallel_CFR_Trainer(CFR_Trainer):
             current_profile[hashable_info_set][action] = new_profile[action]
 
     @classmethod
-    def CFR(cls, history, player, t, reach_probs, new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks):
+    def CFR(cls, history, player, t, reach_probs, new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks, dual_learning=False):
         # Deal with terminal and chance nodes
         if history.get_node_type() == 'T':
             return history.get_utility(player)
         elif history.get_node_type() == 'C':
             new_history = history.generate_chance_outcome()
             return Parallel_CFR_Trainer.CFR(new_history, player, t, reach_probs,
-                                            new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks)
+                                            new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks, dual_learning)
         
         # Get information set and set it up in the cumulative tables if not seen yet
         information_set = history.get_player_info(history.get_active_player())
@@ -320,7 +320,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                 sleep(POLLING_RATE)
 
         # Calculate utilities
-        expected_utility = 0.0
+        expected_utility = [0.0, 0.0] if dual_learning else 0.0
         actual_utilities = [0.0] * NUM_ACTIONS
         legal_actions = history.get_legal_actions()
         with locks[hashable_info_set]:
@@ -334,15 +334,22 @@ class Parallel_CFR_Trainer(CFR_Trainer):
             
             if history.get_active_player() == 0:
                 actual_utilities[action] = Parallel_CFR_Trainer.CFR(new_history, player, t, (action_weight*reach_probs[0], reach_probs[1]),
-                                                                    new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks)
+                                                                    new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks, dual_learning)
             else:
                 actual_utilities[action] = Parallel_CFR_Trainer.CFR(new_history, player, t, (reach_probs[0], action_weight*reach_probs[1]), 
-                                                                    new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks)
+                                                                    new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks, dual_learning)
 
-            expected_utility += action_weight*actual_utilities[action]
+            if dual_learning:
+                expected_utility[0] += action_weight*actual_utilities[action][0]
+                expected_utility[1] += action_weight*actual_utilities[action][1]
+            else:
+                expected_utility += action_weight*actual_utilities[action]
         
         # Update strategies if learning player is currently taking the action
-        if history.get_active_player() == player:
+        if history.get_active_player() == player or dual_learning:
+            
+            active_player = history.get_active_player()
+
             with locks[hashable_info_set]:
                 for action, legal in enumerate(legal_actions):
                     if not legal:
@@ -350,13 +357,17 @@ class Parallel_CFR_Trainer(CFR_Trainer):
 
                     action_weight = current_strategy[action]
 
-                    Parallel_CFR_Trainer.update_cumulative_regret(hashable_info_set, action, actual_utilities[action], expected_utility, reach_probs[1-player], cumulative_regret)
-                    Parallel_CFR_Trainer.update_cumulative_strategy(hashable_info_set, action, reach_probs[player], action_weight, cumulative_strategy)
+                    if dual_learning:
+                        Parallel_CFR_Trainer.update_cumulative_regret(hashable_info_set, action, actual_utilities[action][active_player], expected_utility[active_player], reach_probs[1-active_player], cumulative_regret)
+                    else:
+                        Parallel_CFR_Trainer.update_cumulative_regret(hashable_info_set, action, actual_utilities[action], expected_utility, reach_probs[1-active_player], cumulative_regret)
+
+                    Parallel_CFR_Trainer.update_cumulative_strategy(hashable_info_set, action, reach_probs[active_player], action_weight, cumulative_strategy)
                 Parallel_CFR_Trainer.update_current_profile(hashable_info_set, history, cumulative_regret, current_profile)
         
         return expected_utility
                 
-    def solve(self, iters):
+    def solve(self, iters, dual_learning=False):
         parallel_factor = self.num_cores // PLAYERS
         print(f'Training {parallel_factor} iterations in parallel per player...')
         with tqdm(total=iters, desc='Training', unit='iteration') as pbar:
@@ -373,7 +384,8 @@ class Parallel_CFR_Trainer(CFR_Trainer):
                             self.cumulative_regret,
                             self.cumulative_strategy,
                             self.current_profile,
-                            self.locks
+                            self.locks,
+                            dual_learning
                         )
                     )
                     for player in range(PLAYERS)
@@ -410,38 +422,10 @@ class Parallel_CFR_Trainer(CFR_Trainer):
         return table
 
 if __name__ == '__main__':
-    trainer = CFR_Trainer()
-    trainer.solve(5, dual_learning=True)
-    strategy = trainer.get_equilibrium_strategy()
-    
-    data_folder = './CFR_TRAIN_DATA'
-    if not os.path.exists(data_folder):
-        os.mkdir(data_folder)
-    save_directory = f'{data_folder}/{datetime.now()}'
-    os.mkdir(save_directory)
-
-    # Save equilibrium strategy
-    CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
-
-    # Save tables for future training
-    CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_strategy.csv', trainer.cumulative_strategy)
-    CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_regret.csv', trainer.cumulative_regret)
-    CFR_Trainer.save_to_csv(f'{save_directory}/current_profile.csv', trainer.current_profile)
-
-    # Save regrets to see if it converged
-    with open(f'{save_directory}/regrets.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(trainer.regrets)
-    print(f'Saved data to {save_directory}\regrets.csv')
-
-    # latest = ''
-    # trainer = Parallel_CFR_Trainer()
-    # #     f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
-    # #     f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
-    # #     f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
-    # # )
-    # trainer.solve(140)
+    # trainer = CFR_Trainer()
+    # trainer.solve(5, dual_learning=True)
     # strategy = trainer.get_equilibrium_strategy()
+    
     # data_folder = './CFR_TRAIN_DATA'
     # if not os.path.exists(data_folder):
     #     os.mkdir(data_folder)
@@ -449,7 +433,7 @@ if __name__ == '__main__':
     # os.mkdir(save_directory)
 
     # # Save equilibrium strategy
-    # Parallel_CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
+    # CFR_Trainer.save_to_csv(f'{save_directory}/strategy.csv', strategy)
 
     # # Save tables for future training
     # CFR_Trainer.save_to_csv(f'{save_directory}/cumulative_strategy.csv', trainer.cumulative_strategy)

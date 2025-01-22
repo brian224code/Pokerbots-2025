@@ -10,7 +10,7 @@ import queue
 from time import sleep
 
 PLAYERS = 2
-POLLING_RATE = 0.01
+POLLING_RATE = 0.01 # sec
 
 class CFR_Trainer:
     def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename=''):
@@ -223,8 +223,9 @@ class CFR_Trainer:
 class Parallel_CFR_Trainer(CFR_Trainer):
     def __init__(self, cumulative_regret_filename='', cumulative_strategy_filename='', current_profile_filename='', workers=mp.cpu_count()-3):
         # should use os.process_cpu_count() on python 3.13+ because it is safer, but both say 10 on my MacBook
+        # leave 1 core for os, 1 core for parent process (checking the queue) and 1 core for shared memory manager
         self.num_cores = min(mp.cpu_count()-3, workers)
-        print(f'Identified {self.num_cores} cpu cores.')
+        print(f'Using {self.num_cores} cpu cores for worker processes.')
         self.manager = mp.Manager()
         self.new_info_sets = mp.Queue(maxsize=1)
 
@@ -420,12 +421,13 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
+    latest = '2025-01-21 17:10:10.325563'
     trainer = Parallel_CFR_Trainer()
-    #     './CFR_TRAIN_DATA/cumulative_regret.csv', 
-    #     './CFR_TRAIN_DATA/cumulative_strategy.csv', 
-    #     './CFR_TRAIN_DATA/current_profile.csv'
+    #     f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
+    #     f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
+    #     f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
     # )
-    trainer.solve(300)
+    trainer.solve(411)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):

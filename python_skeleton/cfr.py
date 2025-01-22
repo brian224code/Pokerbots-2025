@@ -207,12 +207,10 @@ class CFR_Trainer:
                 action_weight = self.current_profile[hashable_info_set][action]
 
                 if dual_learning:
-                    expected_utility = expected_utility[active_player]
-                    actual_utility = actual_utilities[action][active_player]
+                    self.update_cumulative_regret(hashable_info_set, action, actual_utilities[action][active_player], expected_utility[active_player], reach_probs[1-active_player])
                 else:
-                    actual_utility = actual_utilities[action]
+                    self.update_cumulative_regret(hashable_info_set, action, actual_utilities[action], expected_utility, reach_probs[1-active_player])
 
-                self.update_cumulative_regret(hashable_info_set, action, actual_utility, expected_utility, reach_probs[1-active_player])
                 self.update_cumulative_strategy(hashable_info_set, action, reach_probs[active_player], action_weight)
             self.update_current_profile(hashable_info_set, history)
         
@@ -475,7 +473,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
 
 if __name__ == '__main__':
     trainer = CFR_Trainer()
-    trainer.solve(1)
+    trainer.solve(5, dual_learning=True)
     strategy = trainer.get_equilibrium_strategy()
     
     data_folder = './CFR_TRAIN_DATA'

@@ -123,7 +123,7 @@ class CFR_Trainer:
             return self.CFR(new_history, player, t, reach_probs)
         
         # Get information set and set it up in the cumulative tables if not seen yet
-        information_set = history.get_player_info(player)
+        information_set = history.get_player_info(history.get_active_player())
         hashable_info_set = str(information_set)
 
         # print('---------------------------------')
@@ -425,7 +425,7 @@ if __name__ == '__main__':
         './CFR_TRAIN_DATA/cumulative_strategy.csv', 
         './CFR_TRAIN_DATA/current_profile.csv'
     )
-    trainer.solve(400)
+    trainer.solve(360)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):

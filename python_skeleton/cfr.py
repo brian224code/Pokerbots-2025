@@ -304,7 +304,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
     def CFR(cls, history, player, t, reach_probs, new_info_sets, cumulative_regret, cumulative_strategy, current_profile, locks, dual_learning=False):
         # Deal with terminal and chance nodes
         if history.get_node_type() == 'T':
-            return history.get_utility(player)
+            return history.get_utility(player, dual_learning)
         elif history.get_node_type() == 'C':
             new_history = history.generate_chance_outcome()
             return Parallel_CFR_Trainer.CFR(new_history, player, t, reach_probs,
@@ -321,7 +321,7 @@ class Parallel_CFR_Trainer(CFR_Trainer):
 
         # Calculate utilities
         expected_utility = [0.0, 0.0] if dual_learning else 0.0
-        actual_utilities = [0.0] * NUM_ACTIONS
+        actual_utilities = [(0.0, 0.0)] * NUM_ACTIONS if dual_learning else [0.0] * NUM_ACTIONS
         legal_actions = history.get_legal_actions()
         with locks[hashable_info_set]:
             current_strategy = list(current_profile[hashable_info_set])
@@ -446,13 +446,13 @@ if __name__ == '__main__':
     #     writer.writerow(trainer.regrets)
     # print(f'Saved data to {save_directory}\regrets.csv')
 
-    latest = '2025-01-22 10:42:48.999157'
+    latest = '2025-01-22 18:34:31.998252'
     trainer = Parallel_CFR_Trainer(
         f'./CFR_TRAIN_DATA/{latest}/cumulative_regret.csv', 
         f'./CFR_TRAIN_DATA/{latest}/cumulative_strategy.csv', 
         f'./CFR_TRAIN_DATA/{latest}/current_profile.csv'
     )
-    trainer.solve(170)
+    trainer.solve(iters=120, dual_learning=True)
     strategy = trainer.get_equilibrium_strategy()
     data_folder = './CFR_TRAIN_DATA'
     if not os.path.exists(data_folder):

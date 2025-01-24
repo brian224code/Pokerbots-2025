@@ -156,9 +156,6 @@ class Player(Bot):
             # current state was learned during training
             strategy = self.strategy[hashable_info_set]
             
-            # TODO: can remove this once we have new strategy csv; currently gets rid of last 3 elements, which are nan
-            if len(strategy) != NUM_ACTIONS:
-                strategy = strategy[:NUM_ACTIONS]
         else:
             # current state was not learned during training
             for i in range(10):
@@ -172,6 +169,12 @@ class Player(Bot):
 
         # return action based on strategy if strategy exists
         if sum(strategy) != 0:
+
+            # Don't fold on strong hands
+            if info_set.handBucket.preflop >= 7 or info_set.handBucket.flop >= 7 or info_set.handBucket.turn >= 7 or info_set.handBucket.river >= 7:
+                strategy[0] = 0.0
+                strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
+
             actions = [FoldAction, CallAction, CheckAction, max_raise] + RAISES
             index = random.choices(range(NUM_ACTIONS), weights=strategy, k=1)[0]
             if index < 3:

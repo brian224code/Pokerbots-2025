@@ -151,43 +151,43 @@ class Player(Bot):
         info_set = InformationSet(card_bucket, my_stack, opp_stack)
         hashable_info_set = str(info_set)
 
-        strategy = [0] * (NUM_ACTIONS)
-        if hashable_info_set in self.strategy:
-            # current state was learned during training
-            strategy = self.strategy[hashable_info_set]
+        # strategy = [0] * (NUM_ACTIONS)
+        # if hashable_info_set in self.strategy:
+        #     # current state was learned during training
+        #     strategy = self.strategy[hashable_info_set]
             
-        else:
-            # current state was not learned during training
-            for i in range(10):
-                for j in range(10):
-                    neighboring_hashable_info_set = hashable_info_set[:-3] + str(i) + '|' + str(j)
-                    if neighboring_hashable_info_set in self.strategy:
-                        for k in range(NUM_ACTIONS):
-                            neighboring_strategy = self.strategy[neighboring_hashable_info_set]
-                            strategy[k] += neighboring_strategy[k]
-            strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
+        # else:
+        #     # current state was not learned during training
+        #     for i in range(10):
+        #         for j in range(10):
+        #             neighboring_hashable_info_set = hashable_info_set[:-3] + str(i) + '|' + str(j)
+        #             if neighboring_hashable_info_set in self.strategy:
+        #                 for k in range(NUM_ACTIONS):
+        #                     neighboring_strategy = self.strategy[neighboring_hashable_info_set]
+        #                     strategy[k] += neighboring_strategy[k]
+        #     strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
 
-        # return action based on strategy if strategy exists
-        if sum(strategy) != 0:
+        # # return action based on strategy if strategy exists
+        # if sum(strategy) != 0:
 
-            # Don't fold on strong hands
-            if info_set.handBucket.preflop >= 7 or info_set.handBucket.flop >= 7 or info_set.handBucket.turn >= 7 or info_set.handBucket.river >= 7:
-                strategy[0] = 0.0
-                strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
+        #     # Don't fold on strong hands
+        #     if info_set.handBucket.preflop >= 7 or info_set.handBucket.flop >= 7 or info_set.handBucket.turn >= 7 or info_set.handBucket.river >= 7:
+        #         strategy[0] = 0.0
+        #         strategy = [weight / sum(strategy) if weight else 0.0 for weight in strategy]
 
-            actions = [FoldAction, CallAction, CheckAction, max_raise] + RAISES
-            index = random.choices(range(NUM_ACTIONS), weights=strategy, k=1)[0]
-            if index < 3:
-                if actions[index] in legal_actions:
-                    return actions[index]()
-            else:
-                if RaiseAction in legal_actions:
-                    bet = actions[index]
-                    offset = random.randint(-5, 5)
-                    if bet + offset <= max_raise and bet + offset >= min_raise:
-                        return RaiseAction(bet + offset)
-                    else:
-                        return RaiseAction(max(min_raise, min(max_raise, bet)))
+        #     actions = [FoldAction, CallAction, CheckAction, max_raise] + RAISES
+        #     index = random.choices(range(NUM_ACTIONS), weights=strategy, k=1)[0]
+        #     if index < 3:
+        #         if actions[index] in legal_actions:
+        #             return actions[index]()
+        #     else:
+        #         if RaiseAction in legal_actions:
+        #             bet = actions[index]
+        #             offset = random.randint(-5, 5)
+        #             if bet + offset <= max_raise and bet + offset >= min_raise:
+        #                 return RaiseAction(bet + offset)
+        #             else:
+        #                 return RaiseAction(max(min_raise, min(max_raise, bet)))
         
         # Pre-flop
         if street == 0:
@@ -213,7 +213,7 @@ class Player(Bot):
             self.cheese = False
             max_preflop_bet = int((my_stack + my_pip) * .2 * self.hole_strength)
 
-            HOLE_STRENGTH_THRESH = 0
+            HOLE_STRENGTH_THRESH = 0.68
             # if self.aggro_playing:
             #     HOLE_STRENGTH_THRESH = 0.69
             
@@ -281,9 +281,9 @@ class Player(Bot):
             sim_iterations = 200
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
 
-            if win_probability > 0.9 and RaiseAction in legal_actions:
+            if win_probability > 0.75 and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.75:
+            if win_probability > 0.50:
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 
@@ -295,9 +295,9 @@ class Player(Bot):
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
             self.post_turn_win_probability = win_probability
 
-            if win_probability > 0.9 and RaiseAction in legal_actions:
+            if win_probability > 0.75 and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.75:
+            if win_probability > 0.50:
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 
@@ -308,9 +308,10 @@ class Player(Bot):
             win_probability = self.post_turn_win_probability
             print("Win probability: ", win_probability)
 
-            if win_probability > 0.9 and RaiseAction in legal_actions:
+            if win_probability > 0.75 and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
+            if win_probability > 0.50:
+                return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
-
 if __name__ == '__main__':
     run_bot(Player(), parse_args())

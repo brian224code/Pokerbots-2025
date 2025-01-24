@@ -1,10 +1,10 @@
 import eval7
 import csv
-import os
-import itertools
-from math import comb
+# import os
+# import itertools
+# from math import comb
 import pandas as pd
-from tqdm import tqdm
+# from tqdm import tqdm
 
 def monte_carlo(visible_cards, iters):
     """
@@ -47,44 +47,44 @@ def monte_carlo(visible_cards, iters):
 
     return win_count / iters
 
-def make_csv(num_community_cards, iters):
-    """
-    Create lookup table of winrates for hands in a given stage in the round
+# def make_csv(num_community_cards, iters):
+#     """
+#     Create lookup table of winrates for hands in a given stage in the round
 
-    Args:
-        num_community_cards: 0 for preflop, 3 for flop, 4 for turn, 5 for river
-        iters: number of sims to run when calculating winrates
+#     Args:
+#         num_community_cards: 0 for preflop, 3 for flop, 4 for turn, 5 for river
+#         iters: number of sims to run when calculating winrates
 
-    Returns:
-        nothing (saves lookup table as a csv)
-    """
-    if num_community_cards not in [0, 3, 4, 5]:
-        raise Exception('Valid num_community_cards are 0 for preflop, 3 for flop, 4 for turn, 5 for river.')
+#     Returns:
+#         nothing (saves lookup table as a csv)
+#     """
+#     if num_community_cards not in [0, 3, 4, 5]:
+#         raise Exception('Valid num_community_cards are 0 for preflop, 3 for flop, 4 for turn, 5 for river.')
     
-    deck = eval7.Deck()
-    holes = itertools.combinations(deck, 2 + num_community_cards)
-    total_hands = comb(52, 2 + num_community_cards)
-    winrates = []
+#     deck = eval7.Deck()
+#     holes = itertools.combinations(deck, 2 + num_community_cards)
+#     total_hands = comb(52, 2 + num_community_cards)
+#     winrates = []
 
-    for hole in tqdm(holes, desc="Simulating", unit="iteration", total=total_hands):
-        hole = [str(card) for card in hole]
-        winrate = monte_carlo(hole, iters)
+#     for hole in tqdm(holes, desc="Simulating", unit="iteration", total=total_hands):
+#         hole = [str(card) for card in hole]
+#         winrate = monte_carlo(hole, iters)
 
-        row = {
-            'community ' + str(1 + card): hole[2 + card]
-            for card in range(num_community_cards)
-            }
+#         row = {
+#             'community ' + str(1 + card): hole[2 + card]
+#             for card in range(num_community_cards)
+#             }
         
-        row['hole 1'] = hole[0]
-        row['hole 2'] = hole[1]
-        row['winrate'] = winrate
+#         row['hole 1'] = hole[0]
+#         row['hole 2'] = hole[1]
+#         row['winrate'] = winrate
 
-        winrates.append(row)
+#         winrates.append(row)
 
-    with open('./winrates_for_street_size_' + str(num_community_cards) + '.csv', 'w') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=[field for field in winrates[0].keys()])
-        writer.writeheader()
-        writer.writerows(winrates)
+#     with open('./winrates_for_street_size_' + str(num_community_cards) + '.csv', 'w') as csvfile:
+#         writer = csv.DictWriter(csvfile, fieldnames=[field for field in winrates[0].keys()])
+#         writer.writeheader()
+#         writer.writerows(winrates)
 
 def load_csv(filename):
     """

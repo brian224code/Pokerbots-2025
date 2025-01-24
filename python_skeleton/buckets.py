@@ -4,6 +4,7 @@ from calculate_winrates import load_hole_winrates
 class Bucket:
     def __init__(self):
         self.bounty = 0
+        self.wetness = 0
         self.preflop = 0
         self.flop = 0
         self.turn = 0
@@ -11,6 +12,7 @@ class Bucket:
 
     def __str__(self):
         return ('\nbounty: ' + str(self.bounty) + 
+                '\nwetness: ' + str(self.wetness) +
                 '\npreflop: ' + str(self.preflop) + 
                 '\nflop: ' + str(self.flop) + 
                 '\nturn: ' + str(self.turn) + 
@@ -65,52 +67,60 @@ def get_bucket(hand, bounty, hole_winrates):
         bucket.bounty = 1
 
     # Calculate preflop bucket
-    rank_1 = hand[0][0]
-    rank_2 = hand[1][0]
-    suited = '1' if hand[0][1] == hand[1][1] else '0'
+    if len(hand) == 2:
+        rank_1 = hand[0][0]
+        rank_2 = hand[1][0]
+        suited = '1' if hand[0][1] == hand[1][1] else '0'
 
-    if rank_1 + rank_2 + suited in hole_winrates:
-        hole_winrate = hole_winrates[rank_1 + rank_2 + suited]
-    else:
-        hole_winrate = hole_winrates[rank_2 + rank_1 + suited]
+        if rank_1 + rank_2 + suited in hole_winrates:
+            hole_winrate = hole_winrates[rank_1 + rank_2 + suited]
+        else:
+            hole_winrate = hole_winrates[rank_2 + rank_1 + suited]
 
-    for i, threshhold in enumerate(PREFLOP_RANGES):
-        if hole_winrate <= threshhold:
-            bucket.preflop = i + 1
-            break
-
+        for i, threshhold in enumerate(PREFLOP_RANGES):
+            if hole_winrate <= threshhold:
+                bucket.preflop = i + 1
+                break
+        hand = [eval7.Card(card) for card in hand]
     # Calculate flop bucket
-    if len(hand) >= 5:
-        current_hand = [eval7.Card(card) for card in hand[:5]]
-        potential = is_high_potential(current_hand)
+    elif len(hand) == 5:
+        hand = [eval7.Card(card) for card in hand]
+        potential = is_high_potential(hand)
         if potential:
             bucket.flop = len(FLOP_RANGES) + potential
         else:
-            score = eval7.evaluate(current_hand)
+            score = eval7.evaluate(hand)
             for i, threshhold in enumerate(FLOP_RANGES):
                 if score <= threshhold:
                     bucket.flop = i + 1
                     break
     # Calculate turn bucket
-    if len(hand) >= 6:
-        current_hand.append(eval7.Card(hand[5]))
-        potential = is_high_potential(current_hand)
+    elif len(hand) == 6:
+        hand = [eval7.Card(card) for card in hand]
+        potential = is_high_potential(hand)
         if potential:
             bucket.turn = len(TURN_RANGES) + potential
         else:
-            score = eval7.evaluate(current_hand)
+            score = eval7.evaluate(hand)
             for i, threshhold in enumerate(TURN_RANGES):
                 if score <= threshhold:
                     bucket.turn = i + 1
                     break
     # Calculate river bucket
-    if len(hand) == 7:
-        current_hand.append(eval7.Card(hand[6]))
-        score = eval7.evaluate(current_hand)
+    else: # len(hand) == 7
+        hand = [eval7.Card(card) for card in hand]
+        score = eval7.evaluate(hand)
         for i, threshhold in enumerate(RIVER_RANGES):
             if score <= threshhold:
                 bucket.river = i + 1
                 break
+
+    # Calculate wetness
+    handtype = eval7.handtype(eval7.evaluate(hand))
+    if handtype != eval7.handtype(eval7.evaluate(hand[1:])):
+        bucket.wetness += 1
+    if handtype != eval7.handtype(eval7.evaluate(hand[0:1] + hand[2:])):
+        bucket.wetness += 1
     
     return bucket
 

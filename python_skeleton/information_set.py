@@ -30,7 +30,7 @@ class InformationSet():
       return min(9, stack//40)
    
    def __str__(self):
-      flags = [self.handBucket.bounty, self.handBucket.preflop, self.handBucket.flop, self.handBucket.turn, self.handBucket.river, self.my_stack, self.opp_stack]
+      flags = [self.handBucket.bounty, self.handBucket.wetness, self.handBucket.preflop, self.handBucket.flop, self.handBucket.turn, self.handBucket.river, self.my_stack, self.opp_stack]
       return '|'.join([str(flag) for flag in flags])
    
    @classmethod
@@ -38,10 +38,11 @@ class InformationSet():
         flags = string.split('|')
         bucket = Bucket()
         bucket.bounty = int(flags[0])
-        bucket.preflop = int(flags[1])
-        bucket.flop = int(flags[2])
-        bucket.turn = int(flags[3])
-        bucket.river = int(flags[4])
-        my_stack = int(flags[5])
-        opp_stack = int(flags[6])
+        bucket.wetness = int(flags[1])
+        bucket.preflop = int(flags[2])
+        bucket.flop = int(flags[3])
+        bucket.turn = int(flags[4])
+        bucket.river = int(flags[5])
+        my_stack = int(flags[6])
+        opp_stack = int(flags[7])
         return cls(bucket, my_stack, opp_stack)

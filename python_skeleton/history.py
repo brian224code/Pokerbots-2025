@@ -108,7 +108,7 @@ class History():
         else:
             return 'D'
     
-    def get_utility(self, player_id):
+    def get_utility(self, player_id, dual_learning=False):
         '''
         Returns utility of respective player if state is terminal node
 
@@ -135,6 +135,10 @@ class History():
                 delta = self.get_delta(2)
         else:
             delta = self.get_delta(1 if deltas[0] > deltas[1] else 0)
+        
+        # return utility of both players as opposed to just input player
+        if dual_learning:
+            return (delta, -delta)
         
         return delta if player_id == 0 else -delta
 

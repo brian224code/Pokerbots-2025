@@ -281,9 +281,9 @@ class Player(Bot):
             sim_iterations = 200
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
 
-            if win_probability > 0.75 and RaiseAction in legal_actions:
+            if win_probability > 0.77 and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.50:
+            if win_probability > 0.60:
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 
@@ -291,13 +291,13 @@ class Player(Bot):
         elif street == 4:
             print("Turn")
 
-            sim_iterations = 280
+            sim_iterations = 250
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
             self.post_turn_win_probability = win_probability
 
-            if win_probability > 0.75 and RaiseAction in legal_actions:
+            if win_probability > 0.77 and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.50:
+            if win_probability > 0.60:
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 
@@ -308,9 +308,12 @@ class Player(Bot):
             win_probability = self.post_turn_win_probability
             print("Win probability: ", win_probability)
 
-            if win_probability > 0.75 and RaiseAction in legal_actions:
+            return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
+
+
+            if win_probability > 0.77 and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.50:
+            if win_probability > 0.60:
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 if __name__ == '__main__':

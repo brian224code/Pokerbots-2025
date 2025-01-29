@@ -151,6 +151,11 @@ class Player(Bot):
         info_set = InformationSet(card_bucket, my_stack, opp_stack)
         hashable_info_set = str(info_set)
 
+        # calculate hand type
+        hand = [eval7.Card(card) for card in my_cards + board_cards]
+        hand_type = eval7.handtype(eval7.evaluate(hand))
+        hit_bounty = 1 if my_bounty in [card[0] for card in my_cards + board_cards] else 0
+
         # strategy = [0] * (NUM_ACTIONS)
         # if hashable_info_set in self.strategy:
         #     # current state was learned during training
@@ -274,16 +279,19 @@ class Player(Bot):
                 return CallAction()  
 
         # Flop
-        elif street == 3:
+        if street == 3:
             print("Flop")
 
             # run monte carlo to estimate win rate based on hole cards and flop
             sim_iterations = 200
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
 
-            if win_probability > 0.77 and RaiseAction in legal_actions:
+            THRESHOLD_1 = (0.84, 0.77)
+            THRESHOLD_2 = (0.66, 0.60)
+
+            if win_probability > THRESHOLD_1[hit_bounty] and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.60:
+            if win_probability > THRESHOLD_2[hit_bounty] or (hand_type != "High Card" and hand_type != "Pair"):
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 
@@ -295,9 +303,12 @@ class Player(Bot):
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
             self.post_turn_win_probability = win_probability
 
-            if win_probability > 0.77 and RaiseAction in legal_actions:
+            THRESHOLD_1 = (0.84, 0.77)
+            THRESHOLD_2 = (0.66, 0.60)
+
+            if win_probability > THRESHOLD_1[hit_bounty] and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.60:
+            if win_probability > THRESHOLD_2[hit_bounty] or (hand_type != "High Card" and hand_type != "Pair"):
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 
@@ -308,12 +319,12 @@ class Player(Bot):
             win_probability = self.post_turn_win_probability
             print("Win probability: ", win_probability)
 
-            return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
+            THRESHOLD_1 = (0.84, 0.77)
+            THRESHOLD_2 = (0.66, 0.60)
 
-
-            if win_probability > 0.77 and RaiseAction in legal_actions:
+            if win_probability > THRESHOLD_1[hit_bounty] and RaiseAction in legal_actions:
                 return RaiseAction(max(min_raise, min(max_raise, int(win_probability**2 * 80))))
-            if win_probability > 0.60:
+            if win_probability > THRESHOLD_2[hit_bounty] or (hand_type != "High Card" and hand_type != "Pair"):
                 return CheckAction() if CheckAction in legal_actions else CallAction() # check-fold
             return CheckAction() if CheckAction in legal_actions else FoldAction() # check-fold
 if __name__ == '__main__':

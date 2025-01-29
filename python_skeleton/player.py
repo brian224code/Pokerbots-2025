@@ -51,7 +51,7 @@ class Player(Bot):
         self.hole_strength = 0
 
         self.games_won = 0
-        self.opp_thresholds = 0.7
+        self.opp_hole_thresholds = []
 
     def handle_new_round(self, game_state, round_state, active):
         '''
@@ -125,15 +125,13 @@ class Player(Bot):
             else:
                 opp_hole_strength = self.hole_winrates[rank_2 + rank_1 + suited]
 
-            opp_threshold = self.opp_thresholds[opponent_bounty_hit]
-            # opp_thresholds should always be >= 0.5
-
-            if abs(my_delta) > 30 and opp_hole_strength > 0.5 and opp_hole_strength < opp_threshold:
-                self.opp_thresholds[opponent_bounty_hit] -= (opp_threshold - opp_hole_strength) / 2
-            else:
-                self.opp_thresholds[opponent_bounty_hit] += min(0.001, 0.99 - opp_threshold)
-        
-            print("NEW OPP THRESHOLD:", self.opp_thresholds)
+            if opp_hole_strength > 0.5:
+                self.opp_hole_thresholds.append(opp_hole_strength)
+                
+                if len(self.opp_hole_thresholds) > 50:
+                    self.opp_hole_thresholds.pop(0)
+            
+                print("NEW OPP THRESHOLD:", sum(self.opp_hole_thresholds) / len(self.opp_hole_thresholds))
 
         if my_bounty_hit:
             print("I hit my bounty of " + bounty_rank + "!")
@@ -250,7 +248,7 @@ class Player(Bot):
             self.cheese = False
             max_preflop_bet = int((my_stack + my_pip) * .2 * self.hole_strength)
 
-            HOLE_STRENGTH_THRESH = max(0.68, self.opp_thresholds)
+            HOLE_STRENGTH_THRESH = max(0.68, sum(self.opp_hole_thresholds) / len(self.opp_hole_thresholds))
             # if self.aggro_playing:
             #     HOLE_STRENGTH_THRESH = 0.69
             

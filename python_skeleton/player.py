@@ -109,7 +109,7 @@ class Player(Bot):
         opponent_bounty_rank = previous_state.bounties[1-active]  # attempting to grab opponent's bounty rank
 
         print("DID WIN:", my_delta > 0)
-        print("OPP THRESHOLD:", self.opp_thresholds)
+        print("OPP THRESHOLD:", self.opp_hole_thresholds)
 
         if my_delta > 0:
             self.games_won += 1 # not gonna deal with complications of ties/bounty hit tie etc.

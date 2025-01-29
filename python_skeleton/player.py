@@ -51,7 +51,8 @@ class Player(Bot):
         self.hole_strength = 0
 
         self.games_won = 0
-        self.opp_hole_thresholds = []
+        self.MIN_HOLE_THRESHOLD = 0.68
+        self.opp_hole_thresholds = [self.MIN_HOLE_THRESHOLD]
 
     def handle_new_round(self, game_state, round_state, active):
         '''
@@ -248,7 +249,7 @@ class Player(Bot):
             self.cheese = False
             max_preflop_bet = int((my_stack + my_pip) * .2 * self.hole_strength)
 
-            HOLE_STRENGTH_THRESH = max(0.68, sum(self.opp_hole_thresholds) / len(self.opp_hole_thresholds))
+            HOLE_STRENGTH_THRESH = max(self.MIN_HOLE_THRESHOLD, sum(self.opp_hole_thresholds) / len(self.opp_hole_thresholds))
             # if self.aggro_playing:
             #     HOLE_STRENGTH_THRESH = 0.69
             

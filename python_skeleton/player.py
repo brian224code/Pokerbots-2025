@@ -50,6 +50,9 @@ class Player(Bot):
         self.preflop_action = None
         self.hole_strength = 0
 
+        self.games_won = 0
+        self.opp_thresholds = 0.7
+
     def handle_new_round(self, game_state, round_state, active):
         '''
         Called when a new round starts. Called NUM_ROUNDS times.
@@ -68,10 +71,10 @@ class Player(Bot):
         my_cards = round_state.hands[active]  # your cards
         big_blind = bool(active)  # True if you are the big blind
         my_bounty = round_state.bounties[active]  # your current bounty rank
-        #print("\n=============\nnew round")
-        #print(f"Round Number: {round_num}")
-        #print(f"Game Clock: {game_clock}")
-        #print(f"Bounty Rank: {my_bounty}")
+        print("\n=============\nnew round")
+        print(f"Round Number: {round_num}")
+        print(f"Game Clock: {game_clock}")
+        print(f"Bounty Rank: {my_bounty}")
         
         if my_bankroll > 3.6 * (1000 - round_num):
             self.won = True
@@ -95,6 +98,7 @@ class Player(Bot):
         street = previous_state.street  # 0, 3, 4, or 5 representing when this round ended
         my_cards = previous_state.hands[active]  # your cards
         opp_cards = previous_state.hands[1-active]  # opponent's cards or [] if not revealed
+        board_cards = previous_state.deck[:street]  # the board cards
         
         my_bounty_hit = terminal_state.bounty_hits[active]  # True if you hit bounty
         opponent_bounty_hit = terminal_state.bounty_hits[1-active] # True if opponent hit bounty
@@ -102,6 +106,34 @@ class Player(Bot):
 
         # The following is a demonstration of accessing illegal information (will not work)
         opponent_bounty_rank = previous_state.bounties[1-active]  # attempting to grab opponent's bounty rank
+
+        print("DID WIN:", my_delta > 0)
+        print("OPP THRESHOLD:", self.opp_thresholds)
+
+        if my_delta > 0:
+            self.games_won += 1 # not gonna deal with complications of ties/bounty hit tie etc.
+        
+        # gauging opponents action thresholds
+        if len(opp_cards) != 0:
+
+            rank_1 = opp_cards[0][0]
+            rank_2 = opp_cards[1][0]
+            suited = '1' if opp_cards[0][1] == opp_cards[1][1] else '0'
+
+            if rank_1 + rank_2 + suited in self.hole_winrates:
+                opp_hole_strength = self.hole_winrates[rank_1 + rank_2 + suited]
+            else:
+                opp_hole_strength = self.hole_winrates[rank_2 + rank_1 + suited]
+
+            opp_threshold = self.opp_thresholds[opponent_bounty_hit]
+            # opp_thresholds should always be >= 0.5
+
+            if abs(my_delta) > 30 and opp_hole_strength > 0.5 and opp_hole_strength < opp_threshold:
+                self.opp_thresholds[opponent_bounty_hit] -= (opp_threshold - opp_hole_strength) / 2
+            else:
+                self.opp_thresholds[opponent_bounty_hit] += min(0.001, 0.99 - opp_threshold)
+        
+            print("NEW OPP THRESHOLD:", self.opp_thresholds)
 
         if my_bounty_hit:
             print("I hit my bounty of " + bounty_rank + "!")
@@ -218,11 +250,10 @@ class Player(Bot):
             self.cheese = False
             max_preflop_bet = int((my_stack + my_pip) * .2 * self.hole_strength)
 
-            HOLE_STRENGTH_THRESH = 0.68
+            HOLE_STRENGTH_THRESH = max(0.68, self.opp_thresholds)
             # if self.aggro_playing:
             #     HOLE_STRENGTH_THRESH = 0.69
             
-            #TODO review this code chunk; I think there's a bug here
             if (self.hole_strength <= HOLE_STRENGTH_THRESH and continue_cost > 0 and FoldAction in legal_actions):
                 if not bool(active):
                     if RaiseAction in legal_actions and min_raise <= 5 and max_raise >= 5:
@@ -286,6 +317,8 @@ class Player(Bot):
             sim_iterations = 200
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
 
+            print("Win probability: ", win_probability)
+
             THRESHOLD_1 = (0.84, 0.77)
             THRESHOLD_2 = (0.66, 0.60)
 
@@ -302,6 +335,8 @@ class Player(Bot):
             sim_iterations = 250
             win_probability = monte_carlo(my_cards + board_cards, sim_iterations)
             self.post_turn_win_probability = win_probability
+
+            print("Win probability: ", win_probability)
 
             THRESHOLD_1 = (0.84, 0.77)
             THRESHOLD_2 = (0.66, 0.60)
